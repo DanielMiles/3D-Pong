@@ -536,6 +536,11 @@ World::objects_erase()
 //
 
 void
+World::make_truss(Truss_Info *truss_info)
+{
+}
+
+void
 World::ball_setup_1()
 {
   // Arrange and size balls to form a pendulum.
@@ -547,314 +552,35 @@ World::ball_setup_1()
   // The delete operator is used on objects in the lists.
   //
   objects_erase();
-
-  for ( int i=0; i<chain_length; i++ )
-    {
-      // Construct a new ball and add it to the simulated objects list (balls).
-      //
-      Ball* const ball = balls += new Ball;
-
-      // Initialize position and other information.
-      //
-      ball->position = first_pos + i * delta_pos;
-      ball->locked = false;
-      ball->velocity = pVect(0,0,0);
-      ball->radius = 0.3;
-      ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
-      ball->contact = false;
-
-      // If it's not the first ball link it to the previous ball.
-      if ( i > 0 ) links += new Link( ball, balls[i-1] );
-    }
+  Ball* const ball = new Ball();
+  ball->position = first_pos;
+  ball->locked = false;
+  ball->velocity = pVect(0,0,0);
+  ball->radius = 1;
+  ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
+  ball->contact = false;
+  ball->color = pColor(1,.25,1);
+  balls += ball;
 
   // The balls pointed to by head_ball and tail_ball can be manipulated
   // using the user interface (by pressing 'h' or 't', for example).
   // Set these variables.
   //
-  head_ball = balls[0];
-  tail_ball = balls[balls-1];
+  head_ball = ball;
+  tail_ball = ball;
 
-  opt_head_lock = true;    // Head ball will be frozen in space.
-  opt_tail_lock = false;   // Tail ball can move freely.
-}
-
-
-void
-World::make_truss(Truss_Info *truss_info)
-{
-  /// Construct a truss based on members of truss_info.
-  //
-
-  //            <---- num_units (=9) ----------->
-  //  j
-  //  0         O---O---O---O---O---O---O---O---O     ^
-  //            |   |   |   |   |   |   |   |   |     |
-  //  1         O---O---O---O---O---O---O---O---O   num_sides (=3)
-  //            |   |   |   |   |   |   |   |   |     |
-  //  2         O---O---O---O---O---O---O---O---O     v
-  //
-  //      i ->  0   1   2   3   4   5   6   7   8
-  //
-  //  Note: Not all links are shown in the diagram above.
-
-  /// Truss_Info Inputs
-  //
-  //  truss_info->num_units
-  //    The number of sections in the truss (see diagram above).
-  //
-  //  truss_info->base_coors
-  //    A list containing num_sides coordinates, the coordinates of
-  //    balls at i=0 (see diagram above). (num_sides is the number of
-  //    elements in this list.)  These coordinates should all be
-  //    in the same plane.
-  //
-  //  truss_info->unit_length
-  //    A vector pointing from the ball at (i,j) to the ball at (i+1,j).
-  //
-  /// Truss_Info Outputs
-  //
-  //  truss_info->balls
-  //    A list that should be filled with the balls making up the truss.
-  //
-  //  truss_info->links
-  //    A list that should be filled with the links making up the truss.
-
-
-  const int num_sides = truss_info->base_coors.occ();
-  const int num_units = truss_info->num_units;
-
-  // Lists to hold balls and links created for truss.
-  //
-  Balls& bprep = truss_info->balls;
-  Links& lprep = truss_info->links;
-
-  // Create balls for truss.
-  //
-  for ( int i=0; i<num_units; i++ )
-    for ( pCoor bcoor; truss_info->base_coors.iterate(bcoor); )
-      {
-        Ball* const ball = bprep += new Ball;
-        ball->position = bcoor + i * truss_info->unit_length;
-        ball->locked = false;
-        ball->velocity = pVect(0,0,0);
-        ball->radius = 0.15;
-        ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
-        ball->contact = false;
-      }
-
-  // Create links.
-  //
-  for ( int i=0; i<num_units; i++ )
-    for ( int j=0; j<num_sides; j++ )
-      {
-        const int idx = j + num_sides * i;
-
-        // Retrieve the ball corresponding to (i,j).
-        //
-        Ball* const ball = bprep[idx];
-
-        // Compute the index of the ball at (i, (j-1) mod num_sides ).
-        //
-        const int pn_idx = idx + ( j == 0 ? num_sides - 1 : -1 );
-
-        // Insert link to neighbor ball with name i.
-        //
-        lprep += new Link( ball, bprep[pn_idx], color_gray );
-
-        // Insert links to balls with same i that are not neighbors.
-        //
-        if ( j == i % num_sides )
-          for ( int k = 2; k < num_sides-1; k++ )
-            lprep += new Link
-              ( ball, bprep[ idx + (k+j)%num_sides - j ], color_white );
-
-        if ( i == 0 ) continue;
-
-        // Insert link to ball at (i-1,j).
-        //
-        lprep +=
-          new Link( ball, bprep[idx-num_sides], color_lsu_official_purple );
-
-        // Insert link to ball at (i-1, j-1 mod num_sides ).
-        //
-        lprep += new Link( ball, bprep[pn_idx-num_sides], color_green );
-      }
+  opt_head_lock = false;    // Head ball will be frozen in space.
+  opt_tail_lock = false;    // Tail ball can move freely.
 }
 
 void
 World::ball_setup_2()
 {
-  pCoor first_pos(13.4,17.8,-9.2);
-  const float spacing = distance_relaxed;
-  pVect delta_pos = pVect(spacing*0.05,-spacing,0);
-  pNorm loc_y = delta_pos;
-  pNorm loc_x = pVect(0,0,1);
-  pNorm loc_z = cross(loc_y,loc_x);
-
-  // Erase the existing balls and links.
-  //
-  objects_erase();
-
-  Truss_Info truss_info;
-
-  truss_info.num_units = chain_length;
-  truss_info.unit_length = delta_pos;
-
-  const int sides = 4;
-
-  for ( int j=0; j<sides; j++ )
-    {
-      const double angle = double(j)/sides*2*M_PI;
-      pCoor chain_first_pos =
-        first_pos
-        + 0.5 * spacing * cos(angle) * loc_x
-        + 0.5 * spacing * sin(angle) * loc_z;
-
-      truss_info.base_coors += chain_first_pos;
-    }
-
-  make_truss(&truss_info);
-
-  // Insert links to balls at either end.
-  //
-  head_ball = balls += new Ball;
-  head_ball->position = first_pos - delta_pos;
-  for ( int j=0; j<sides; j++ )
-    links += new Link( head_ball, truss_info.balls[j], color_chocolate );
-
-  tail_ball = balls += new Ball;
-  tail_ball->position = first_pos + chain_length * delta_pos;
-
-  const int bsize = truss_info.balls.size();
-
-  for ( int j=0; j<sides; j++ )
-    links += new Link( tail_ball, truss_info.balls[bsize-sides+j],
-                       color_chocolate );
-
-  for ( BIter ball(balls); ball; )
-    {
-      ball->locked = false;
-      ball->velocity = pVect(0,0,0);
-      ball->radius = 0.15;
-      ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
-      ball->contact = false;
-    }
-
-  balls += truss_info.balls;
-  links += truss_info.links;
-
-  opt_tail_lock = false;
-  opt_head_lock = false;
 }
 
 void
 World::ball_setup_3()
 {
-  pCoor first_pos(13.4,17.8,-9.2);
-  const float spacing = distance_relaxed;
-  pVect delta_pos = pVect(spacing*0.05,-spacing,0);
-  pNorm delta_dir = delta_pos;
-  pNorm tan_dir = pVect(0,0,1);
-  pNorm um_dir = cross(tan_dir,delta_dir);
-
-  // Erase the existing balls and links.
-  //
-  objects_erase();
-
-  Truss_Info truss_info;
-
-  truss_info.num_units = chain_length;
-  truss_info.unit_length = delta_pos;
-
-  const int sides = 4;
-
-  for ( int j=0; j<sides; j++ )
-    {
-      const double angle = double(j)/sides*2*M_PI;
-      pCoor chain_first_pos =
-        first_pos
-        + 0.5 * spacing * cos(angle) * tan_dir
-        + 0.5 * spacing * sin(angle) * um_dir;
-
-      truss_info.base_coors += chain_first_pos;
-    }
-
-  make_truss(&truss_info);
-
-  const int idx_center = chain_length / 2 * sides;
-
-  for ( int i=0; i<sides; i++ )
-    {
-      Truss_Info ti;
-      ti.num_units = chain_length / 2;
-      const int idx_1 = idx_center + ( i == 0 ? sides - 1 : i - 1 );
-      const int idx_2 = idx_center + i;
-
-      Ball* const b0 = truss_info.balls[idx_1];
-      Ball* const b1 = truss_info.balls[idx_1 - sides];
-      Ball* const b2 = truss_info.balls[idx_2 - sides];
-      Ball* const b3 = truss_info.balls[idx_2];
-      ti.base_coors += b0->position;
-      ti.base_coors += b1->position;
-      ti.base_coors += b2->position;
-      ti.base_coors += b3->position;
-
-      pNorm v_head = cross(b1->position,b2->position,b3->position);
-      ti.unit_length = delta_dir.magnitude * v_head;
-      make_truss(&ti);
-      links += new Link(b0,ti.balls[0],color_red);
-      links += new Link(b1,ti.balls[1],color_red);
-      links += new Link(b2,ti.balls[2],color_red);
-      links += new Link(b3,ti.balls[3],color_red);
-      links += ti.links;
-      balls += ti.balls;
-
-      int tsz = ti.balls.size();
-
-      if ( i == 2 )
-        {
-          ball_eye = ti.balls[tsz-2];
-          ball_down = ti.balls[tsz-1];
-        }
-      else if ( i == 1 )
-        {
-          ball_gaze = ti.balls[tsz/2];
-        }
-
-    }
-
-  // Insert links to balls at either end.
-  //
-  head_ball = balls += new Ball;
-  head_ball->color = color_green;
-  head_ball->position = first_pos - delta_pos;
-  for ( int j=0; j<sides; j++ )
-    links += new Link( head_ball, truss_info.balls[j], color_chocolate );
-
-  tail_ball = balls += new Ball;
-  tail_ball->color = color_green;
-  tail_ball->position = first_pos + chain_length * delta_pos;
-
-  const int bsize = truss_info.balls.size();
-
-  for ( int j=0; j<sides; j++ )
-    links += new Link( tail_ball, truss_info.balls[bsize-sides+j],
-                       color_chocolate );
-
-  for ( BIter ball(balls); ball; )
-    {
-      ball->locked = false;
-      ball->velocity = pVect(0,0,0);
-      ball->radius = 0.15;
-      ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
-      ball->contact = false;
-    }
-
-  balls += truss_info.balls;
-  links += truss_info.links;
-
-  opt_tail_lock = false;
-  opt_head_lock = false;
 }
 
 
