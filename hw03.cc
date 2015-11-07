@@ -130,6 +130,125 @@ public:
 
 };
 
+// Object Holding Ball State
+//
+class Ball {
+public:
+  Ball():velocity(pVect(0,0,0)),locked(false),
+         color(color_lsu_spirit_gold),contact(false){};
+  pCoor position;
+  pVect velocity;
+
+  float mass;
+  float mass_min; // Mass below which simulation is unstable.
+  float radius;
+
+  bool locked;
+
+  pVect force;
+  pColor color;
+  bool contact;                 // When true, ball rendered in gray.
+  float spring_constant_sum;    // Used to compute minimum mass.
+
+  void push(pVect amt);
+  void translate(pVect amt);
+  void stop();
+  void freeze();
+};
+
+class Link {
+public:
+  Link(Ball *b1, Ball *b2):ball1(b1),ball2(b2),
+     distance_relaxed(pDistance(b1->position,b2->position)), snapped(false),
+     natural_color(color_lsu_spirit_purple),color(color_lsu_spirit_purple){}
+  Link(Ball *b1, Ball *b2, pColor colorp):ball1(b1),ball2(b2),
+     distance_relaxed(pDistance(b1->position,b2->position)), snapped(false),
+     natural_color(colorp),color(colorp){}
+  Ball* const ball1;
+  Ball* const ball2;
+  float distance_relaxed;
+  bool snapped;
+  pColor natural_color;
+  pColor color;
+};
+
+class Platform{
+public:
+  Platform(pCoor tl, pCoor tr, pCoor br, pCoor bl, pColor c = pColor(0,0,1)){
+    top_left = tl;
+    top_right = tr;
+    bot_right = br;
+    bot_left = bl;
+    color = c;
+    natural_color = color;
+  }
+  Platform(){}
+  void render(){
+    glBegin(GL_QUADS);
+    glColor3fv(color);
+    glVertex3fv(top_left);
+    glVertex3fv(top_right);
+    glVertex3fv(bot_right);
+    glVertex3fv(bot_left);
+    glEnd();
+  }
+  pCoor top_left;
+  pCoor top_right;
+  pCoor bot_right;
+  pCoor bot_left;
+  pColor color;
+  pColor natural_color;
+};
+
+class Cube{
+public:
+  Cube(pCoor pos, float s){
+    position = pos;
+    size = s;
+    tb_left = position + pCoor(-size, size, -size);
+    tb_right = position +  pCoor(size, size, -size);
+    tf_left = position + pCoor(-size, size, size);
+    tf_right = position + pCoor(size, size, size);
+    bb_left = position + pCoor(-size, -size, -size);
+    bb_right = position + pCoor(size, -size, -size);
+    bf_left = position + pCoor(-size, -size, size);
+    bf_right = position + pCoor(size, -size, size);
+    platforms[0] = Platform(tf_left, tf_right, bf_right, bf_left);
+    platforms[1] = Platform(tf_right, tb_right, bb_right, bf_right);
+    platforms[2] = Platform(tb_left, tb_right, bb_right, bb_left);
+    platforms[3] = Platform(tb_left, tf_left, bf_left, bb_left);
+    platforms[4] = Platform(tb_left, tb_right, tf_right, tf_left);
+    platforms[5] = Platform(bb_left, bb_right, bf_right, bf_left);
+  }
+  void render(){
+    for(int i = 0; i < 6; i++){
+      Platform pl = platforms[i];
+      pl.render();
+    }
+  }
+  bool checkCollision(Ball* ball){
+    bool fail = false;    
+    pCoor pos = ball->position;
+    if (pos.x-ball->radius < bb_left.x || pos.x+ball->radius > tf_right.x) {fail = true; ball->velocity.x *= -1;}
+    if (pos.y-ball->radius < bb_left.y || pos.y+ball->radius > tf_right.y) {fail = true; ball->velocity.y *= -1;}
+    if (pos.z-ball->radius < bb_left.z || pos.z+ball->radius > tf_right.z) {fail = true; ball->velocity.z *= -1;}
+    return fail;
+ }
+
+  Platform platforms[6];
+  float size;
+  Ball* ball;
+  pCoor position;
+  pCoor tb_left;
+  pCoor tb_right;
+  pCoor tf_left;
+  pCoor tf_right;
+  pCoor bb_left;
+  pCoor bb_right;
+  pCoor bf_left;
+  pCoor bf_right;
+};
+
  /// Homework 3 All Problems
 //
 //   Use this class to define variables and member functions.
@@ -175,49 +294,9 @@ public:
   //
   void render();
   void clean();
-};
-
-
-// Object Holding Ball State
-//
-class Ball {
-public:
-  Ball():velocity(pVect(0,0,0)),locked(false),
-         color(color_lsu_spirit_gold),contact(false){};
-  pCoor position;
-  pVect velocity;
-
-  float mass;
-  float mass_min; // Mass below which simulation is unstable.
-  float radius;
-
-  bool locked;
-
-  pVect force;
-  pColor color;
-  bool contact;                 // When true, ball rendered in gray.
-  float spring_constant_sum;    // Used to compute minimum mass.
-
-  void push(pVect amt);
-  void translate(pVect amt);
-  void stop();
-  void freeze();
-};
-
-class Link {
-public:
-  Link(Ball *b1, Ball *b2):ball1(b1),ball2(b2),
-     distance_relaxed(pDistance(b1->position,b2->position)), snapped(false),
-     natural_color(color_lsu_spirit_purple),color(color_lsu_spirit_purple){}
-  Link(Ball *b1, Ball *b2, pColor colorp):ball1(b1),ball2(b2),
-     distance_relaxed(pDistance(b1->position,b2->position)), snapped(false),
-     natural_color(colorp),color(colorp){}
-  Ball* const ball1;
-  Ball* const ball2;
-  float distance_relaxed;
-  bool snapped;
-  pColor natural_color;
-  pColor color;
+  
+  float const size = 50;
+  Cube cube = Cube(pCoor(0,size+5,0), size);
 };
 
 // Declare containers and iterators for Balls and Links.
@@ -388,7 +467,7 @@ My_Piece_Of_The_World::render()
   //
   // See demo-8-texture.cc for examples.
 
-
+  cube.render();
 
   for ( int i=0; i<num_overlays; i++ )
     {
@@ -437,12 +516,12 @@ World::init()
   opt_spring_constant = 15000;
   variable_control.insert(opt_spring_constant,"Spring Constant");
 
-  opt_gravity_accel = 9.8;
+  opt_gravity_accel = 0;
   opt_gravity = true;
   gravity_accel = pVect(0,-opt_gravity_accel,0);
   variable_control.insert(opt_gravity_accel,"Gravity");
 
-  opt_air_resistance = 0.04;
+  opt_air_resistance = 0;
   variable_control.insert(opt_air_resistance,"Air Resistance");
 
   world_time = 0;
@@ -543,6 +622,7 @@ World::make_truss(Truss_Info *truss_info)
 void
 World::ball_setup_1()
 {
+  
   // Arrange and size balls to form a pendulum.
 
   pCoor first_pos(13.4,14,-9.2);
@@ -552,15 +632,16 @@ World::ball_setup_1()
   // The delete operator is used on objects in the lists.
   //
   objects_erase();
-  Ball* const ball = new Ball();
+  Ball* ball =  new Ball();
   ball->position = first_pos;
   ball->locked = false;
-  ball->velocity = pVect(0,0,0);
+  ball->velocity = pVect(25,25,25);
   ball->radius = 1;
   ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
   ball->contact = false;
   ball->color = pColor(1,.25,1);
   balls += ball;
+  mp.cube.ball = ball;
 
   // The balls pointed to by head_ball and tail_ball can be manipulated
   // using the user interface (by pressing 'h' or 't', for example).
@@ -616,46 +697,6 @@ World::time_step_cpu(double delta_t)
   for ( BIter ball(balls); ball; )
     ball->force = ball->mass * gravity_accel;
 
-  for ( LIter link(links); link; )
-    {
-      // Spring Force from Neighbor Balls
-      //
-      Ball* const ball1 = link->ball1;
-      Ball* const ball2 = link->ball2;
-
-      // Construct a normalized (Unit) Vector from ball to neighbor.
-      //
-      pNorm ball_to_neighbor(ball1->position,ball2->position);
-
-      const float distance_between_balls = ball_to_neighbor.magnitude;
-
-      // Compute the speed of ball towards neighbor_ball.
-      //
-      pVect delta_v = ball2->velocity - ball1->velocity;
-      float delta_s = dot( delta_v, ball_to_neighbor );
-
-      // Compute by how much the spring is stretched (positive value)
-      // or compressed (negative value).
-      //
-      const float spring_stretch =
-        distance_between_balls - link->distance_relaxed;
-
-      // Determine whether spring is gaining energy (whether its length
-      // is getting further from its relaxed length).
-      //
-      const bool gaining_e = ( delta_s > 0.0 ) == ( spring_stretch > 0 );
-
-      // Use a smaller spring constant when spring is loosing energy,
-      // a quick and dirty way of simulating energy loss due to spring
-      // friction.
-      //
-      const float spring_constant =
-        gaining_e ? opt_spring_constant : opt_spring_constant * 0.7;
-
-      ball1->force += spring_constant * spring_stretch * ball_to_neighbor;
-      ball2->force -= spring_constant * spring_stretch * ball_to_neighbor;
-    }
-
   ///
   /// Update Position of Each Ball
   ///
@@ -685,6 +726,7 @@ World::time_step_cpu(double delta_t)
       const bool collision =
         platform_collision_possible(ball->position) && dist_above < 0;
 
+      
       if ( collision )
         {
           const float spring_constant_plat =
@@ -707,6 +749,8 @@ World::time_step_cpu(double delta_t)
             }
           delta_v.y += delta_v_up;
         }
+
+      mp.cube.checkCollision(ball);
 
       ball->velocity += delta_v;
 
