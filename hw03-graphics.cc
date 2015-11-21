@@ -61,6 +61,8 @@ public:
   void objects_erase();
   void cb_keyboard();
   void modelview_update();
+  //shader for stuff 
+  pShader *sp_phong;          // Phong shading.
 
   My_Piece_Of_The_World mp;
 
@@ -150,6 +152,14 @@ World::init_graphics()
   ///
   /// Graphical Model Initialization
   ///
+  
+  //shader delcaration 
+    sp_phong = new pShader
+    ("hw04-shdr.cc",// File holding shader program.
+     "vs_main(); ",     // Name of vertex shader main routine.
+     "gs_main_simple();",
+     "fs_main();"       // Name of fragment shader main routine.
+     );
 
   opt_platform_texture = true;
   opt_shadows = false; // For Homework 3 2015.
@@ -252,7 +262,10 @@ World::render_objects(Render_Option option)
   pColor spec_color(0.2,0.2,0.2);
   Render_FCtx fc(light_location,eye_location);
   Render_Ctx rc(fc);
-
+  
+  //select shader
+  //sp_phong->use();
+ 
   if ( option == RO_Shadow_Volumes )
     viewer_shadow_volume = 0;
 
