@@ -174,11 +174,12 @@ public:
 
 class Platform{
 public:
-  Platform(pCoor tl, pCoor tr, pCoor br, pCoor bl, pColor c = pColor(0,0,1)){
-    top_left = tl;
-    top_right = tr;
-    bot_right = br;
-    bot_left = bl;
+  Platform(pCoor p, pVect s, pColor c = pColor(0,0,1)){
+    top_right = p + s;
+    bot_left = p - s;
+    top_left = bot_left + 2*s.y;
+    bot_right = top_right + 2*s.y;
+    size = s;
     color = c;
     natural_color = color;
   }
@@ -196,8 +197,26 @@ public:
   pCoor top_right;
   pCoor bot_right;
   pCoor bot_left;
+  pVect size;
   pColor color;
   pColor natural_color;
+};
+
+class Paddle {
+public:
+  Paddle(pCoor p, pVect s, pColor c = pColor(1,0,0)){
+    origin = p;
+    size = s;
+    color = c;
+    natural_color = c;
+  }
+  Paddle(){}
+  pCoor origin;
+  pColor color;
+  pVect size;
+  pCoilor natural_color;
+  Platform surfaces[6];
+  }
 };
 
 class Cube{
@@ -213,7 +232,7 @@ public:
     bb_right = position + pCoor(size, -size, -size);
     bf_left = position + pCoor(-size, -size, size);
     bf_right = position + pCoor(size, -size, size);
-    platforms[0] = Platform(tf_left, tf_right, bf_right, bf_left);
+    platforms[0] = Platform(pos + pCoor(-size,0,0), pVect(s,s,0));
     platforms[1] = Platform(tf_right, tb_right, bb_right, bf_right);
     platforms[2] = Platform(tb_left, tb_right, bb_right, bb_left);
     platforms[3] = Platform(tb_left, tf_left, bf_left, bb_left);
