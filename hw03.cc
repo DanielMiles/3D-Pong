@@ -220,12 +220,12 @@ public:
     platforms[4] = Platform(tb_left, tb_right, tf_right, tf_left);
     platforms[5] = Platform(bb_left, bb_right, bf_right, bf_left);
 
-    paddle0_tl = position + pCoor(-size, 2, -2);
-    paddle0_tr = position + pCoor(-size, 2, 2);
-    paddle0_br = position + pCoor(-size, -2, 2);
-    paddle0_bl = position + pCoor(-size, -2, -2);
-    paddles[0] = Platform(paddle0_tl+pCoor(1,0,0), paddle0_tr+pCoor(1,0,0) , paddle0_br+pCoor(1,0,0), paddle0_bl+pCoor(1,0,0), pColor(1,0,0));
-    paddles[1] = Platform(paddle0_tl+pCoor(2*size,0,0)+pCoor(-1,0,0), paddle0_tr+pCoor(2*size,0,0)+pCoor(-1,0,0), paddle0_br+pCoor(2*size,0,0)+pCoor(-1,0,0), paddle0_bl+pCoor(2*size,0,0)+pCoor(-1,0,0), pColor(1,0,0));
+    pCoor paddle0_tl = position + pCoor(-size, 5, -5);
+    pCoor paddle0_tr = position + pCoor(-size, 5, 5);
+    pCoor paddle0_br = position + pCoor(-size, -5, 5);
+    pCoor paddle0_bl = position + pCoor(-size, -5, -5);
+    paddles[0] = Platform(paddle0_tl+pCoor(5,0,0), paddle0_tr+pCoor(5,0,0) , paddle0_br+pCoor(5,0,0), paddle0_bl+pCoor(5,0,0), pColor(1,0,0));
+    paddles[1] = Platform(paddle0_tl+pCoor(2*size,0,0)+pCoor(-5,0,0), paddle0_tr+pCoor(2*size,0,0)+pCoor(-5,0,0), paddle0_br+pCoor(2*size,0,0)+pCoor(-5,0,0), paddle0_bl+pCoor(2*size,0,0)+pCoor(-5,0,0), pColor(1,0,0));
   }
   void render(){
     for(int i = 0; i < 6; i++){
