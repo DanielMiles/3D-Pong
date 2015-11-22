@@ -174,14 +174,13 @@ public:
 
 class Platform{
 public:
-  Platform(pCoor p, pVect s, pColor c = pColor(0,0,1)){
-    top_right = p + s;
-    bot_left = p - s;
-    top_left = bot_left + pVect(0,2*s.y,0);
-    bot_right = top_right - pVect(0,2*s.y,0);
-    size = s;
+  Platform(pCoor tl, pCoor tr, pCoor br, pCoor bl, pColor c = pColor(1,1,1)){
     color = c;
-    natural_color = color;
+    natural_color = c;
+    top_right = tr;
+    top_left = tl;
+    bot_left = bl;
+    bot_right = br; 
   }
   Platform(){}
   void render(){
@@ -197,33 +196,32 @@ public:
   pCoor top_right;
   pCoor bot_right;
   pCoor bot_left;
-  pVect size;
   pColor color;
   pColor natural_color;
 };
 
+
 class R_Prism{
 public:
-  R_Prism(pCoor pos, pVect s){
+  R_Prism(pCoor pos, pVect s, pColor c = pColor(0,0,1)){
     position = pos;
     size = s;
-
-    tf_right = position + s;
-    tb_right = tf_right - pVect(0,0,2*s.z);
-    bf_right = tf_right - pVect(0,2*s.y,0);
-    bb_right = bf_right - pVect(0,0,2*s.z);
-    
-    bb_left = position - s;
-    bf_left = bb_left + pVect(0,0,2*s.z);
-    tb_left = bf_left + pVect(0,2*s.y,0);
-    tf_left = tb_left + pVect(0,0,2*s.z);
-
-    platforms[0] = Platform(pos + pCoor(-size.x,0,0), pVect(s.y,s.z,0));
-    platforms[1] = Platform(pos + pCoor(size.x,0,0), pVect(s.y,s.z,0));
-    platforms[2] = Platform(pos + pCoor(0,0,-size.z), pVect(s.x,s.y,0));
-    platforms[3] = Platform(pos + pCoor(0,0,size.z), pVect(s.x,s.y,0));
-    platforms[4] = Platform(pos + pCoor(0,-size.y,0), pVect(s.x,s.z,0));
-    platforms[5] = Platform(pos + pCoor(0,size.y,0), pVect(s.x,s.z,0));
+    s = s/2;
+    color = c;
+    tb_left = pos + pCoor(-s.x,s.y,-s.z);
+    tb_right = pos + pCoor(s.x,s.y,-s.z);
+    tf_left = pos + pCoor(-s.x,s.y,s.z);
+    tf_right = pos + pCoor(s.x,s.y,s.z);
+    bb_left = pos + pCoor(-s.x,-s.y,-s.z);
+    bb_right = pos + pCoor(s.x,-s.y,-s.z);
+    bf_left = pos + pCoor(-s.x,-s.y,s.z);
+    bf_right = pos + pCoor(s.x,-s.y,s.z);
+    platforms[0] = Platform(tf_left, tf_right, bf_right, bf_left, c);
+    platforms[1] = Platform(tf_right, tb_right, bb_right, bf_right, c); 
+    platforms[2] = Platform(tb_left, tb_right, bb_right, bb_left, c);
+    platforms[3] = Platform(tb_left, tf_left, bf_left, bb_left, c);
+    platforms[4] = Platform(tb_left, tb_right, tf_right, tf_left, c);
+    platforms[5] = Platform(bb_left, bb_right, bf_right, bf_left, c);
   }
   R_Prism(){}
   void render(){
@@ -232,14 +230,41 @@ public:
       pl.render();
     }
   }
-  bool checkCollision(Ball* ball){
+  bool collideInside(Ball* ball){
     bool fail = false;    
     pCoor pos = ball->position;
     if (pos.x-ball->radius < bb_left.x || pos.x+ball->radius > tf_right.x) {fail = true; ball->velocity.x *= -1;}
     if (pos.y-ball->radius < bb_left.y || pos.y+ball->radius > tf_right.y) {fail = true; ball->velocity.y *= -1;}
     if (pos.z-ball->radius < bb_left.z || pos.z+ball->radius > tf_right.z) {fail = true; ball->velocity.z *= -1;}
     return fail;
- }
+  }
+
+  bool collideOutside(Ball* ball){
+    bool fail = false;
+    pCoor pos = ball->position;
+    pVect offset = pVect(ball->radius,ball->radius,ball->radius);    
+    pCoor p = pCoor(0,0,0);
+
+    pVect new_velocity = ball->velocity;
+
+    if (pos.x > tf_right.x) p.x = tf_right.x; else if (pos.x < bb_left.x) p.x = bb_left.x; 
+    else {p.x = pos.x; new_velocity.x *= -1;}
+    
+    if (pos.y > tf_right.y) p.y = tf_right.x; else if (pos.y < bb_left.y) p.y = bb_left.y;
+    else {p.y = pos.y; new_velocity.y *= -1;}
+    
+    if (pos.z > tf_right.z) p.z = tf_right.z; else if (pos.z < bb_left.z) p.z = bb_left.z;
+    else {p.z = pos.z; new_velocity.z *= -1;}
+
+    pVect dist = pos - p;    
+
+    if (dist.x*dist.x+dist.y*dist.y+dist.z*dist.z < ball->radius*ball->radius){
+      fail = true;
+      ball->velocity = new_velocity;
+    }
+
+    return fail;
+  } 
 
   Platform platforms[6];
   pVect size;
@@ -252,38 +277,37 @@ public:
   pCoor bb_right;
   pCoor bf_left;
   pCoor bf_right;
+  pColor color;
 };
 
 class Game{
 public:
   Game(){
-    pVect c_size = pVect(50,50,50);
-    pVect p_size = pVect(5,5,1);
-    position = pCoor(0,c_size.y+5,0);
+    pVect c_size = pVect(100,100,100);
+    pVect p_size = pVect(2,75,75);
+    position = pCoor(0,c_size.y/2+1,0);
     cube = R_Prism(position, c_size);
-    //paddles[0] = R_Prism(position - pVect(c_size.x+10,0,0), p_size);
-    //paddles[1] = R_Prism(position + pVect(c_size.x-10,0,0), p_size);
-
-    hard_objects[0] = &cube;
-    //hard_objects[1] = &paddles[0];
-    //hard_objects[2] = &paddles[1];
+    paddles[0] = R_Prism(position - pVect(c_size.x/2-30,0,0), p_size, pColor(1,0,0));
+    paddles[1] = R_Prism(position + pVect(c_size.x/2-30,0,0), p_size, pColor(1,0,0));
+    
+    running = true;
   }
   void render(){
-    for (int i = 0; i < 3; i++)
-      if (hard_objects[i]) hard_objects[i]->render();
-    }
+    cube.render();
+    for (int i = 0; i < 2; i++)
+      paddles[i].render();
+  }
   
   bool checkCollision(){
     bool fail = false;
-    for (int i = 0; i < 3; i++){
-      if (hard_objects[i] && hard_objects[i]->checkCollision(ball)) fail = true;
-    }
+    if (cube.collideInside(ball)) fail = true;
+    for (int i = 0; i < 2; i++)
+      if (paddles[i].collideOutside(ball)) fail = true;
     return fail;
   }
 
-  R_Prism cube = R_Prism();
-  R_Prism paddles[2];
-  R_Prism *hard_objects[3];
+  R_Prism cube;
+  R_Prism paddles[2];  
   Ball* ball;
   pVect position;
   bool running;
@@ -665,7 +689,6 @@ World::ball_setup_1()
   
   // Arrange and size balls to form a pendulum.
 
-  pCoor first_pos(13.4,14,-9.2);
   pVect delta_pos = pVect(distance_relaxed,0,0);
 
   // Remove objects from the simulated objects lists, balls and links.
@@ -673,9 +696,9 @@ World::ball_setup_1()
   //
   objects_erase();
   Ball* ball =  new Ball();
-  ball->position = first_pos;
+  ball->position = mp.game.position;
   ball->locked = false;
-  ball->velocity = pVect(25,25,25);
+  ball->velocity = pVect(25,5,25);
   ball->radius = 1;
   ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
   ball->contact = false;
