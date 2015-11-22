@@ -202,57 +202,32 @@ public:
   pColor natural_color;
 };
 
-class Paddle {
+class R_Prism{
 public:
-  Paddle(pCoor p, pVect s, pColor c = pColor(1,0,0)){
-    origin = p;
-    size = s;
-    color = c;
-    natural_color = c;
-  }
-  Paddle(){}
-  pCoor origin;
-  pColor color;
-  pVect size;
-  pCoilor natural_color;
-  Platform surfaces[6];
-  }
-};
-
-class Cube{
-public:
-  Cube(pCoor pos, float s){
+  R_Prism(pCoor pos, pVect s){
     position = pos;
     size = s;
-    tb_left = position + pCoor(-size, size, -size);
-    tb_right = position +  pCoor(size, size, -size);
-    tf_left = position + pCoor(-size, size, size);
-    tf_right = position + pCoor(size, size, size);
-    bb_left = position + pCoor(-size, -size, -size);
-    bb_right = position + pCoor(size, -size, -size);
-    bf_left = position + pCoor(-size, -size, size);
-    bf_right = position + pCoor(size, -size, size);
-    platforms[0] = Platform(pos + pCoor(-size,0,0), pVect(s,s,0));
-    platforms[1] = Platform(tf_right, tb_right, bb_right, bf_right);
-    platforms[2] = Platform(tb_left, tb_right, bb_right, bb_left);
-    platforms[3] = Platform(tb_left, tf_left, bf_left, bb_left);
-    platforms[4] = Platform(tb_left, tb_right, tf_right, tf_left);
-    platforms[5] = Platform(bb_left, bb_right, bf_right, bf_left);
 
-    pCoor paddle0_tl = position + pCoor(-size, 5, -5);
-    pCoor paddle0_tr = position + pCoor(-size, 5, 5);
-    pCoor paddle0_br = position + pCoor(-size, -5, 5);
-    pCoor paddle0_bl = position + pCoor(-size, -5, -5);
-    paddles[0] = Platform(paddle0_tl+pCoor(5,0,0), paddle0_tr+pCoor(5,0,0) , paddle0_br+pCoor(5,0,0), paddle0_bl+pCoor(5,0,0), pColor(1,0,0));
-    paddles[1] = Platform(paddle0_tl+pCoor(2*size,0,0)+pCoor(-5,0,0), paddle0_tr+pCoor(2*size,0,0)+pCoor(-5,0,0), paddle0_br+pCoor(2*size,0,0)+pCoor(-5,0,0), paddle0_bl+pCoor(2*size,0,0)+pCoor(-5,0,0), pColor(1,0,0));
+    tf_right = position + s;
+    tb_right = tf_right - 2*s.z;
+    bf_right = tf_right - 2*s.y;
+    bb_right = bf_right - 2*s.z;
+    
+    bb_left = position - s;
+    bf_left = position + 2*s.z;
+    tb_left = position + 2*s.y;
+    tf_left = tb_left + 2*s.z;
+
+    platforms[0] = Platform(pos + pCoor(-size.x,0,0), pVect(s.y,s.z,0));
+    platforms[1] = Platform(pos + pCoor(size.x,0,0), pVect(s.y,s.z,0));
+    platforms[2] = Platform(pos + pCoor(0,0,-size.z), pVect(s.x,s.y,0));
+    platforms[3] = Platform(pos + pCoor(0,0,size.z), pVect(s.x,s.y,0));
+    platforms[4] = Platform(pos + pCoor(0,-size.y,0), pVect(s.x,s.z,0));
+    platforms[5] = Platform(pos + pCoor(0,size.y,0), pVect(s.x,s.z,0));
   }
   void render(){
     for(int i = 0; i < 6; i++){
       Platform pl = platforms[i];
-      pl.render();
-    }
-    for (int i = 0; i < 2; i++){
-      Platform pl = paddles[i];
       pl.render();
     }
   }
@@ -266,9 +241,7 @@ public:
  }
 
   Platform platforms[6];
-  Platform paddles[2];
-  float size;
-  Ball* ball;
+  pVect size;
   pCoor position;
   pCoor tb_left;
   pCoor tb_right;
@@ -278,6 +251,38 @@ public:
   pCoor bb_right;
   pCoor bf_left;
   pCoor bf_right;
+};
+
+class Game{
+public:
+  Game(){
+    pVect c_size = pVect(50,50,50);
+    pVect p_size = pVect(5,5,2);
+    position = pCoor(0,size.y+5,0);
+    cube = R_Prism(position, pVect(size,size,size));
+    paddles[0] = R_Prism(position + pCoor(-c_size+10,0,0), p_size);
+    paddles[1] = R_Prism(position + pCoor(c_size-10,0,0), p_size);
+
+    hard_objects[0] = &cube;
+    hard_objects[1] = &paddles[0];
+    hard_objects[2] = &paddles[1];
+  }
+  void render(){
+    for (int i = 0; i < 3; i++)
+      hard_objects[i]->render();
+  }
+  
+  bool checkCollision(){
+    for (int i = 0; i < 3; i++)
+      hard_objects[i]->checkCollision(ball);
+  }
+
+  R_Prism cube = R_Prism();
+  R_Prism paddles[2];
+  R_Prism *hard_objects[3];
+  Ball* ball;
+  pVect position;
+  bool running;
 };
 
  /// Homework 3 All Problems
@@ -300,6 +305,8 @@ public:
 
   // Minimum x- and z- object space coordinate for most recent overlay.
   float overlay_xmin, overlay_zmin;
+
+  Game game; // custom class for 3DPong
 
   void init();
   void sample_tex_make();
@@ -325,9 +332,6 @@ public:
   //
   void render();
   void clean();
-  
-  float const size = 50;
-  Cube cube = Cube(pCoor(0,size+5,0), size);
 };
 
 // Declare containers and iterators for Balls and Links.
@@ -370,6 +374,7 @@ My_Piece_Of_The_World::init()
   wid_x_inv = 1.0 / wid_x;
   wid_z_inv = 1.0 / wid_z;
 
+  game = Game();
 }
 
 void
@@ -498,7 +503,7 @@ My_Piece_Of_The_World::render()
   //
   // See demo-8-texture.cc for examples.
 
-  cube.render();
+  game.render();
 
   for ( int i=0; i<num_overlays; i++ )
     {
@@ -672,7 +677,7 @@ World::ball_setup_1()
   ball->contact = false;
   ball->color = pColor(1,.25,1);
   balls += ball;
-  mp.cube.ball = ball;
+  mp.game.ball = ball;
 
   // The balls pointed to by head_ball and tail_ball can be manipulated
   // using the user interface (by pressing 'h' or 't', for example).
@@ -781,7 +786,7 @@ World::time_step_cpu(double delta_t)
           delta_v.y += delta_v_up;
         }
 
-      mp.cube.checkCollision(ball);
+      mp.game.checkCollision();
 
       ball->velocity += delta_v;
 
