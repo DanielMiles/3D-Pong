@@ -177,8 +177,8 @@ public:
   Platform(pCoor p, pVect s, pColor c = pColor(0,0,1)){
     top_right = p + s;
     bot_left = p - s;
-    top_left = bot_left + 2*s.y;
-    bot_right = top_right + 2*s.y;
+    top_left = bot_left + pVect(0,2*s.y,0);
+    bot_right = top_right - pVect(0,2*s.y,0);
     size = s;
     color = c;
     natural_color = color;
@@ -209,14 +209,14 @@ public:
     size = s;
 
     tf_right = position + s;
-    tb_right = tf_right - 2*s.z;
-    bf_right = tf_right - 2*s.y;
-    bb_right = bf_right - 2*s.z;
+    tb_right = tf_right - pVect(0,0,2*s.z);
+    bf_right = tf_right - pVect(0,2*s.y,0);
+    bb_right = bf_right - pVect(0,0,2*s.z);
     
     bb_left = position - s;
-    bf_left = position + 2*s.z;
-    tb_left = position + 2*s.y;
-    tf_left = tb_left + 2*s.z;
+    bf_left = bb_left + pVect(0,0,2*s.z);
+    tb_left = bf_left + pVect(0,2*s.y,0);
+    tf_left = tb_left + pVect(0,0,2*s.z);
 
     platforms[0] = Platform(pos + pCoor(-size.x,0,0), pVect(s.y,s.z,0));
     platforms[1] = Platform(pos + pCoor(size.x,0,0), pVect(s.y,s.z,0));
@@ -225,6 +225,7 @@ public:
     platforms[4] = Platform(pos + pCoor(0,-size.y,0), pVect(s.x,s.z,0));
     platforms[5] = Platform(pos + pCoor(0,size.y,0), pVect(s.x,s.z,0));
   }
+  R_Prism(){}
   void render(){
     for(int i = 0; i < 6; i++){
       Platform pl = platforms[i];
@@ -257,24 +258,27 @@ class Game{
 public:
   Game(){
     pVect c_size = pVect(50,50,50);
-    pVect p_size = pVect(5,5,2);
-    position = pCoor(0,size.y+5,0);
-    cube = R_Prism(position, pVect(size,size,size));
-    paddles[0] = R_Prism(position + pCoor(-c_size+10,0,0), p_size);
-    paddles[1] = R_Prism(position + pCoor(c_size-10,0,0), p_size);
+    pVect p_size = pVect(5,5,1);
+    position = pCoor(0,c_size.y+5,0);
+    cube = R_Prism(position, c_size);
+    //paddles[0] = R_Prism(position - pVect(c_size.x+10,0,0), p_size);
+    //paddles[1] = R_Prism(position + pVect(c_size.x-10,0,0), p_size);
 
     hard_objects[0] = &cube;
-    hard_objects[1] = &paddles[0];
-    hard_objects[2] = &paddles[1];
+    //hard_objects[1] = &paddles[0];
+    //hard_objects[2] = &paddles[1];
   }
   void render(){
     for (int i = 0; i < 3; i++)
-      hard_objects[i]->render();
-  }
+      if (hard_objects[i]) hard_objects[i]->render();
+    }
   
   bool checkCollision(){
-    for (int i = 0; i < 3; i++)
-      hard_objects[i]->checkCollision(ball);
+    bool fail = false;
+    for (int i = 0; i < 3; i++){
+      if (hard_objects[i] && hard_objects[i]->checkCollision(ball)) fail = true;
+    }
+    return fail;
   }
 
   R_Prism cube = R_Prism();
