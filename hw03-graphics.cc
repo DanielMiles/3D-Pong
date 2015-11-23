@@ -722,15 +722,17 @@ World::cb_keyboard()
   case FB_KEY_INSERT: user_rot_axis.y =  -1; break;
   case FB_KEY_HOME: user_rot_axis.x = 1; break;
   case FB_KEY_END: user_rot_axis.x = -1; break;
+  
+  // Controls for 3D Pong Player "0"
+  case 'w': mp.game.paddles[0].move(pVect(0,1,0)); break;
+  case 'a': mp.game.paddles[0].move(pVect(0,0,1)); break;
+  case 's': mp.game.paddles[0].move(pVect(0,-1,0)); break;
+  case 'd': mp.game.paddles[0].move(pVect(0,0,-1)); break;
+ 
   case '1': ball_setup_1(); break;
-  case '2': ball_setup_2(); break;
-  case '3': ball_setup_3(); break;
-  case '4': ball_setup_4(); break;
-  case '5': ball_setup_5(); break;
   case 'b': opt_move_item = MI_Ball; break;
   case 'B': opt_move_item = MI_Ball_V; break;
   case 'c': case 'C': mp.clean(); break;
-  case 'd': case 'D': opt_shadows = !opt_shadows; break;
   case 'e': case 'E': opt_move_item = MI_Eye; break;
   case 'g': case 'G': opt_gravity = !opt_gravity; break;
   case 'h': case 'H': opt_head_lock = !opt_head_lock; break;
@@ -739,8 +741,6 @@ World::cb_keyboard()
   case 'n': case 'N': opt_platform_texture = !opt_platform_texture; break;
   case 'p': case 'P': opt_pause = !opt_pause; break;
   case 'r': case 'R': opt_ride = !opt_ride; break;
-  case 's': case 'S': balls_stop(); break;
-  case 'w': case 'W': balls_twirl(); break;
   case 'y': opt_tryout1 = !opt_tryout1; break;
   case 'Y': opt_tryout2 = !opt_tryout2; break;
   case ' ':

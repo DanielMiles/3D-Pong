@@ -259,6 +259,27 @@ public:
     }
     return fail;
   }
+  void move (pVect dist){
+    position += dist;
+    tb_left += dist;
+    tb_right += dist;
+    tf_left += dist;
+    tf_right += dist;
+    bb_left += dist;
+    bb_right += dist;
+    bf_left += dist;
+    bf_right += dist;
+    for (int i = 0; i < 6; i++){
+      platforms[i].top_left += dist;
+      platforms[i].top_right += dist;
+      platforms[i].bot_right += dist;
+      platforms[i].bot_left += dist;
+    }
+  }
+  void move (pCoor pos){
+    pVect dist = position - pos;
+    move(dist);
+  }
 
   Platform platforms[6];
   pVect size;
@@ -278,11 +299,11 @@ class Game{
 public:
   Game(){
     pVect c_size = pVect(100,100,100);
-    pVect p_size = pVect(2,75,75);
+    pVect p_size = pVect(2,10,10);
     position = pCoor(0,c_size.y/2+1,0);
     cube = R_Prism(position, c_size);
-    paddles[0] = R_Prism(position - pVect(c_size.x/2-30,0,0), p_size, pColor(1,0,0));
-    paddles[1] = R_Prism(position + pVect(c_size.x/2-30,0,0), p_size, pColor(1,0,0));
+    paddles[0] = R_Prism(position + pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
+    paddles[1] = R_Prism(position - pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
     
     running = true;
   }
@@ -329,7 +350,6 @@ public:
   float overlay_xmin, overlay_zmin;
 
   Game game; // custom class for 3DPong
-
   void init();
   void sample_tex_make();
 
