@@ -137,6 +137,7 @@ public:
   Ball():velocity(pVect(0,0,0)),locked(false),
          color(color_lsu_spirit_gold),contact(false){};
   pCoor position;
+  pCoor prev_position;
   pVect velocity;
 
   float mass;
@@ -174,13 +175,13 @@ public:
 
 class Platform{
 public:
-  Platform(pCoor tl, pCoor tr, pCoor br, pCoor bl, pColor c = pColor(0,0,1)){
-    top_left = tl;
-    top_right = tr;
-    bot_right = br;
-    bot_left = bl;
+  Platform(pCoor tl, pCoor tr, pCoor br, pCoor bl, pColor c = pColor(1,1,1)){
     color = c;
-    natural_color = color;
+    natural_color = c;
+    top_right = tr;
+    top_left = tl;
+    bot_left = bl;
+    bot_right = br; 
   }
   Platform(){}
   void render(){
@@ -200,44 +201,67 @@ public:
   pColor natural_color;
 };
 
-class Cube{
+
+class R_Prism{
 public:
-  Cube(pCoor pos, float s){
+  R_Prism(pCoor pos, pVect s, pColor c = pColor(0,0,1)){
     position = pos;
     size = s;
-    tb_left = position + pCoor(-size, size, -size);
-    tb_right = position +  pCoor(size, size, -size);
-    tf_left = position + pCoor(-size, size, size);
-    tf_right = position + pCoor(size, size, size);
-    bb_left = position + pCoor(-size, -size, -size);
-    bb_right = position + pCoor(size, -size, -size);
-    bf_left = position + pCoor(-size, -size, size);
-    bf_right = position + pCoor(size, -size, size);
-    platforms[0] = Platform(tf_left, tf_right, bf_right, bf_left);
-    platforms[1] = Platform(tf_right, tb_right, bb_right, bf_right);
-    platforms[2] = Platform(tb_left, tb_right, bb_right, bb_left);
-    platforms[3] = Platform(tb_left, tf_left, bf_left, bb_left);
-    platforms[4] = Platform(tb_left, tb_right, tf_right, tf_left);
-    platforms[5] = Platform(bb_left, bb_right, bf_right, bf_left);
+    s = s/2;
+    color = c;
+    tb_left = pos + pCoor(-s.x,s.y,-s.z);
+    tb_right = pos + pCoor(s.x,s.y,-s.z);
+    tf_left = pos + pCoor(-s.x,s.y,s.z);
+    tf_right = pos + pCoor(s.x,s.y,s.z);
+    bb_left = pos + pCoor(-s.x,-s.y,-s.z);
+    bb_right = pos + pCoor(s.x,-s.y,-s.z);
+    bf_left = pos + pCoor(-s.x,-s.y,s.z);
+    bf_right = pos + pCoor(s.x,-s.y,s.z);
+    platforms[0] = Platform(tf_left, tf_right, bf_right, bf_left, c);
+    platforms[1] = Platform(tf_right, tb_right, bb_right, bf_right, c); 
+    platforms[2] = Platform(tb_left, tb_right, bb_right, bb_left, c);
+    platforms[3] = Platform(tb_left, tf_left, bf_left, bb_left, c);
+    platforms[4] = Platform(tb_left, tb_right, tf_right, tf_left, c);
+    platforms[5] = Platform(bb_left, bb_right, bf_right, bf_left, c);
   }
+  R_Prism(){}
   void render(){
     for(int i = 0; i < 6; i++){
       Platform pl = platforms[i];
       pl.render();
     }
   }
-  bool checkCollision(Ball* ball){
+  bool collideInside(Ball* ball){
     bool fail = false;    
     pCoor pos = ball->position;
     if (pos.x-ball->radius < bb_left.x || pos.x+ball->radius > tf_right.x) {fail = true; ball->velocity.x *= -1;}
     if (pos.y-ball->radius < bb_left.y || pos.y+ball->radius > tf_right.y) {fail = true; ball->velocity.y *= -1;}
     if (pos.z-ball->radius < bb_left.z || pos.z+ball->radius > tf_right.z) {fail = true; ball->velocity.z *= -1;}
     return fail;
- }
+  }
+
+  bool collideOutside(Ball* ball){
+    bool fail = false;
+    pCoor p = pCoor(0,0,0);
+    pCoor pos = ball->position;
+    
+    if (pos.x > tf_right.x) p.x = tf_right.x; else if (pos.x < bb_left.x) p.x = bb_left.x; else p.x = pos.x;
+    if (pos.y > tf_right.y) p.y = tf_right.x; else if (pos.y < bb_left.y) p.y = bb_left.y; else p.y = pos.y;
+    if (pos.z > tf_right.z) p.z = tf_right.z; else if (pos.z < bb_left.z) p.z = bb_left.z; else p.z = pos.z;    
+
+    pVect dist = pos - p;
+    if (dist.x*dist.x+dist.y*dist.y+dist.z*dist.z < ball->radius*ball->radius){
+      fail = true;  
+      pos = ball->prev_position;
+      if (pos.x > tf_right.x || pos.x < bb_left.x) ball->velocity.x *= -1;
+      if (pos.y > tf_right.y || pos.y < bb_left.y) ball->velocity.y *= -1;
+      if (pos.z > tf_right.z || pos.z < bb_left.z) ball->velocity.z *= -1;
+    }
+    return fail;
+  }
 
   Platform platforms[6];
-  float size;
-  Ball* ball;
+  pVect size;
   pCoor position;
   pCoor tb_left;
   pCoor tb_right;
@@ -247,6 +271,40 @@ public:
   pCoor bb_right;
   pCoor bf_left;
   pCoor bf_right;
+  pColor color;
+};
+
+class Game{
+public:
+  Game(){
+    pVect c_size = pVect(100,100,100);
+    pVect p_size = pVect(2,75,75);
+    position = pCoor(0,c_size.y/2+1,0);
+    cube = R_Prism(position, c_size);
+    paddles[0] = R_Prism(position - pVect(c_size.x/2-30,0,0), p_size, pColor(1,0,0));
+    paddles[1] = R_Prism(position + pVect(c_size.x/2-30,0,0), p_size, pColor(1,0,0));
+    
+    running = true;
+  }
+  void render(){
+    cube.render();
+    for (int i = 0; i < 2; i++)
+      paddles[i].render();
+  }
+  
+  bool checkCollision(){
+    bool fail = false;
+    if (cube.collideInside(ball)) fail = true;
+    for (int i = 0; i < 2; i++)
+      if (paddles[i].collideOutside(ball)) fail = true;
+    return fail;
+  }
+
+  R_Prism cube;
+  R_Prism paddles[2];  
+  Ball* ball;
+  pVect position;
+  bool running;
 };
 
  /// Homework 3 All Problems
@@ -269,6 +327,8 @@ public:
 
   // Minimum x- and z- object space coordinate for most recent overlay.
   float overlay_xmin, overlay_zmin;
+
+  Game game; // custom class for 3DPong
 
   void init();
   void sample_tex_make();
@@ -294,9 +354,6 @@ public:
   //
   void render();
   void clean();
-  
-  float const size = 50;
-  Cube cube = Cube(pCoor(0,size+5,0), size);
 };
 
 // Declare containers and iterators for Balls and Links.
@@ -339,6 +396,7 @@ My_Piece_Of_The_World::init()
   wid_x_inv = 1.0 / wid_x;
   wid_z_inv = 1.0 / wid_z;
 
+  game = Game();
 }
 
 void
@@ -467,7 +525,7 @@ My_Piece_Of_The_World::render()
   //
   // See demo-8-texture.cc for examples.
 
-  cube.render();
+  game.render();
 
   for ( int i=0; i<num_overlays; i++ )
     {
@@ -625,7 +683,6 @@ World::ball_setup_1()
   
   // Arrange and size balls to form a pendulum.
 
-  pCoor first_pos(13.4,14,-9.2);
   pVect delta_pos = pVect(distance_relaxed,0,0);
 
   // Remove objects from the simulated objects lists, balls and links.
@@ -633,15 +690,15 @@ World::ball_setup_1()
   //
   objects_erase();
   Ball* ball =  new Ball();
-  ball->position = first_pos;
+  ball->position = mp.game.position;
   ball->locked = false;
-  ball->velocity = pVect(25,25,25);
+  ball->velocity = pVect(25,1,25);
   ball->radius = 1;
   ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
   ball->contact = false;
   ball->color = pColor(1,.25,1);
   balls += ball;
-  mp.cube.ball = ball;
+  mp.game.ball = ball;
 
   // The balls pointed to by head_ball and tail_ball can be manipulated
   // using the user interface (by pressing 'h' or 't', for example).
@@ -750,7 +807,7 @@ World::time_step_cpu(double delta_t)
           delta_v.y += delta_v_up;
         }
 
-      mp.cube.checkCollision(ball);
+      mp.game.checkCollision();
 
       ball->velocity += delta_v;
 
@@ -764,8 +821,7 @@ World::time_step_cpu(double delta_t)
       // Assume that velocity is constant.
       //
 
-      pCoor pos_prev = ball->position;
-
+      ball->prev_position = ball->position;
       ball->position += ball->velocity * delta_t;
 
       if ( !collision ) continue;
