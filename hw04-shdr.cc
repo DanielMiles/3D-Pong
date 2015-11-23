@@ -201,7 +201,7 @@ generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
   //pass alpha through without modification
   lighted_color.a = color.a;
 
-  return vec3(0,225,0);
+  return vec4(0,225,0,lighted_color.a);
 }
 
 #endif
