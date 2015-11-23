@@ -137,6 +137,7 @@ public:
   Ball():velocity(pVect(0,0,0)),locked(false),
          color(color_lsu_spirit_gold),contact(false){};
   pCoor position;
+  pCoor prev_position;
   pVect velocity;
 
   float mass;
@@ -241,30 +242,23 @@ public:
 
   bool collideOutside(Ball* ball){
     bool fail = false;
-    pCoor pos = ball->position;
-    pVect offset = pVect(ball->radius,ball->radius,ball->radius);    
     pCoor p = pCoor(0,0,0);
-
-    pVect new_velocity = ball->velocity;
-
-    if (pos.x > tf_right.x) p.x = tf_right.x; else if (pos.x < bb_left.x) p.x = bb_left.x; 
-    else {p.x = pos.x; new_velocity.x *= -1;}
+    pCoor pos = ball->position;
     
-    if (pos.y > tf_right.y) p.y = tf_right.x; else if (pos.y < bb_left.y) p.y = bb_left.y;
-    else {p.y = pos.y; new_velocity.y *= -1;}
-    
-    if (pos.z > tf_right.z) p.z = tf_right.z; else if (pos.z < bb_left.z) p.z = bb_left.z;
-    else {p.z = pos.z; new_velocity.z *= -1;}
+    if (pos.x > tf_right.x) p.x = tf_right.x; else if (pos.x < bb_left.x) p.x = bb_left.x; else p.x = pos.x;
+    if (pos.y > tf_right.y) p.y = tf_right.x; else if (pos.y < bb_left.y) p.y = bb_left.y; else p.y = pos.y;
+    if (pos.z > tf_right.z) p.z = tf_right.z; else if (pos.z < bb_left.z) p.z = bb_left.z; else p.z = pos.z;    
 
-    pVect dist = pos - p;    
-
+    pVect dist = pos - p;
     if (dist.x*dist.x+dist.y*dist.y+dist.z*dist.z < ball->radius*ball->radius){
-      fail = true;
-      ball->velocity = new_velocity;
+      fail = true;  
+      pos = ball->prev_position;
+      if (pos.x > tf_right.x || pos.x < bb_left.x) ball->velocity.x *= -1;
+      if (pos.y > tf_right.y || pos.y < bb_left.y) ball->velocity.y *= -1;
+      if (pos.z > tf_right.z || pos.z < bb_left.z) ball->velocity.z *= -1;
     }
-
     return fail;
-  } 
+  }
 
   Platform platforms[6];
   pVect size;
@@ -698,7 +692,7 @@ World::ball_setup_1()
   Ball* ball =  new Ball();
   ball->position = mp.game.position;
   ball->locked = false;
-  ball->velocity = pVect(25,5,25);
+  ball->velocity = pVect(25,1,25);
   ball->radius = 1;
   ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
   ball->contact = false;
@@ -827,8 +821,7 @@ World::time_step_cpu(double delta_t)
       // Assume that velocity is constant.
       //
 
-      pCoor pos_prev = ball->position;
-
+      ball->prev_position = ball->position;
       ball->position += ball->velocity * delta_t;
 
       if ( !collision ) continue;
