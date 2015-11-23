@@ -110,8 +110,6 @@ gs_main_simple()
   //    When try_cull = 1, only emit triangles facing user.
   //    When try_cull = 2, only emit triangles not facing user.
 
-  if ( tri_cull == 1 ) return;
-
   for ( int i=0; i<3; i++ )
     {
       normal_e = In[i].normal_e;
@@ -166,6 +164,18 @@ generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
 {
   // Return lighted color of vertex_e.
   //
+  //Project goal, green glowing lighted color
+  //not sure if I should be using light sources 
+  //for the glowing bit, seems like non-point light
+  //sources are non-trivial according to my research
+  //
+  //Wait a second, this is where light sources get taken into 
+  //account, so why not just ignore all of them and give uniform
+  //color and pretend a light source is inside of every vertex?
+  //This highlights the importance of only using this set of shaders
+  //for things we want this effect on.
+  
+  //I think we determine if the light is facing the vertex here
   vec4 light_pos = gl_LightSource[0].position;
   vec3 v_vtx_light = light_pos.xyz - vertex_e.xyz;
   float d_n_ve = -dot(normal_e,vertex_e.xyz);
@@ -173,6 +183,8 @@ generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
   bool same_sign = ( d_n_ve > 0 ) == ( d_n_vl > 0 );
   float phase_light = same_sign ? abs(d_n_vl) : 0;
 
+  //get the lights distance and calculate attenuation
+  //based on properties and distance
   vec3 ambient_light = gl_LightSource[0].ambient.rgb;
   vec3 diffuse_light = gl_LightSource[0].diffuse.rgb;
   float dist = length(v_vtx_light);
@@ -182,11 +194,14 @@ generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
     gl_LightSource[0].linearAttenuation * dist +
     gl_LightSource[0].quadraticAttenuation * distsq;
   vec4 lighted_color;
+  //write attenuated result out
   lighted_color.rgb =
     color.rgb * gl_LightModel.ambient.rgb
     + color.rgb * ( ambient_light + phase_light * diffuse_light ) / atten_inv;
+  //pass alpha through without modification
   lighted_color.a = color.a;
-  return lighted_color;
+
+  return vec3(0,225,0);
 }
 
 #endif
