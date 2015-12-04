@@ -724,11 +724,22 @@ World::cb_keyboard()
   case FB_KEY_END: user_rot_axis.x = -1; break;
   
   // Controls for 3D Pong Player "0"
-  case 'w': mp.game.paddles[0].move(pVect(0,1,0)); break;
-  case 'a': mp.game.paddles[0].move(pVect(0,0,1)); break;
-  case 's': mp.game.paddles[0].move(pVect(0,-1,0)); break;
-  case 'd': mp.game.paddles[0].move(pVect(0,0,-1)); break;
+  case 'w': mp.game.paddles[0].move(pVect(0,1,0));
+  case 'a': mp.game.paddles[0].move(pVect(0,0,1)); 
+  case 's': mp.game.paddles[0].move(pVect(0,-1,0)); 
+  case 'd': mp.game.paddles[0].move(pVect(0,0,-1)); 
  
+  // Controls for 3D Pong Player "1"
+  //Unsure of actual numpad key definitions
+  // case FB_NUMPAD8: mp.game.paddles[1].move(pVect(0,1,0)); break;
+  // case FB_NUMPAD4: mp.game.paddles[1].move(pVect(0,0,1)); break;
+  // case FB_NUMPAD2: mp.game.paddles[1].move(pVect(0,-1,0)); break;
+  // case FB_NUMPAD6: mp.game.paddles[1].move(pVect(0,0,-1)); break;
+  case '8': mp.game.paddles[1].move(pVect(0,1,0)); 
+  case '4': mp.game.paddles[1].move(pVect(0,0,1)); 
+  case '2': mp.game.paddles[1].move(pVect(0,-1,0)); 
+  case '6': mp.game.paddles[1].move(pVect(0,0,-1)); 
+
   case '1': ball_setup_1(); break;
   case 'b': opt_move_item = MI_Ball; break;
   case 'B': opt_move_item = MI_Ball_V; break;
