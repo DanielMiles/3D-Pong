@@ -104,16 +104,17 @@
 #include "util-containers.h"
 #include "shapes.h"
 
+/// Color Constants
+const GLfloat white[] = {1.0,1.0,1.0};
+const GLfloat black[] = {0,0,0};
+const GLfloat red[] = {1.0,0,0};
 
 ///
 /// Main Data Structures
 ///
 //
 // class World: All data about scene.
-
-
 class World;
-
 
 class Platform_Overlay {
 public:
@@ -204,11 +205,12 @@ public:
 
 class R_Prism{
 public:
-  R_Prism(pCoor pos, pVect s, pColor c = pColor(0,0,1)){
+  R_Prism(pCoor pos, pVect s, pColor c = pColor(0,0,1), pColor gc = pColor(0,0,0)){
     position = pos;
     size = s;
     s = s/2;
     color = c;
+    glowColor = gc;
     tb_left = pos + pCoor(-s.x,s.y,-s.z);
     tb_right = pos + pCoor(s.x,s.y,-s.z);
     tf_left = pos + pCoor(-s.x,s.y,s.z);
@@ -225,7 +227,8 @@ public:
     platforms[5] = Platform(bb_left, bb_right, bf_right, bf_left, c);
   }
   R_Prism(){}
-  void render(){
+  void render(bool glow = false){
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glowColor);
     for(int i = 0; i < 6; i++){
       Platform pl = platforms[i];
       pl.render();
@@ -293,6 +296,7 @@ public:
   pCoor bf_left;
   pCoor bf_right;
   pColor color;
+  pColor glowColor;
 };
 
 class Game{
@@ -302,15 +306,15 @@ public:
     pVect p_size = pVect(2,10,10);
     position = pCoor(0,c_size.y/2+1,0);
     cube = R_Prism(position, c_size);
-    paddles[0] = R_Prism(position + pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
+    paddles[0] = R_Prism(position + pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0), pColor(1,1,1));
     paddles[1] = R_Prism(position - pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
     
     running = true;
   }
   void render(){
     cube.render();
-    for (int i = 0; i < 2; i++)
-      paddles[i].render();
+    paddles[0].render(true);
+    paddles[1].render();
   }
   
   bool checkCollision(){

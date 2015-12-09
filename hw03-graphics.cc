@@ -7,7 +7,7 @@
 
 #undef DB_SV
 
-#define GL_GLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES54
 #define GLX_GLXEXT_PROTOTYPES
 
 #include <GL/gl.h>
@@ -24,6 +24,7 @@
 #include <gp/misc.h>
 #include <gp/gl-buffer.h>
 #include <gp/texture-util.h>
+#include <map>
 
 enum Render_Option { RO_Normally, RO_Simple, RO_Shadow_Volumes };
 
@@ -36,6 +37,7 @@ public:
   int viewer_sv_count;
 };
 
+
 class Render_Ctx {
 public:
   Render_Ctx(Render_FCtx& fc):fc(&fc){};
@@ -45,9 +47,20 @@ public:
   const pMatrix transform;
 };
 
+// Stores keyDown and keyUp events to find if a key is being held
+map<unsigned char,bool> keys;
+void
+keyDown(unsigned char key, int x, int y)
+{
+  keys[key] = true;
+}
+void
+keyUp(unsigned char key, int x, int y)
+{
+  keys[key] = false;
+}
 
 #include <gp/colors.h>
-
 class World {
 public:
   World(pOpenGL_Helper &fb):mp(*this),ogl_helper(fb){init();}
@@ -65,7 +78,7 @@ public:
   pShader *sp_phong;          // Phong shading.
 
   My_Piece_Of_The_World mp;
-
+ 
   pOpenGL_Helper& ogl_helper;
   pVariable_Control variable_control;
   pFrame_Timer frame_timer;
@@ -145,7 +158,6 @@ public:
   Cylinder cyl;
 };
 
-
 void
 World::init_graphics()
 {
@@ -193,7 +205,9 @@ World::init_graphics()
 
   adj_t_stop = 0;
   adj_duration = 0.25;
-
+  
+  glutKeyboardFunc(keyDown);
+  glutKeyboardUpFunc(keyUp);
 }
 
 
@@ -264,7 +278,7 @@ World::render_objects(Render_Option option)
   Render_Ctx rc(fc);
   
   //select shader
-  //sp_phong->use();
+  sp_phong->use();
  
   if ( option == RO_Shadow_Volumes )
     viewer_shadow_volume = 0;
@@ -333,6 +347,32 @@ World::render_objects(Render_Option option)
                      ball2->position-ball1->position);
         }
     }
+  
+  GLuint paddle_centers_bo = 0;
+  glGenBuffers(1,&paddle_centers_bo);
+  pCoor *paddle_centers = new pCoor[2];  
+  paddle_centers[0] = mp.game.paddles[0].position;
+  paddle_centers[1] = mp.game.paddles[1].position;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, paddle_centers_bo);
+  glBufferData
+   (GL_SHADER_STORAGE_BUFFER,
+    2 * sizeof(mp.game.paddles[0].position),
+    paddle_centers,
+    GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER,3,paddle_centers_bo);
+  
+  GLuint glow_colors_bo = 0;
+  glGenBuffers(1,&glow_colors_bo);
+  pColor *glow_colors = new pColor[2];  
+  glow_colors[0] = mp.game.paddles[0].glowColor;
+  glow_colors[1] = mp.game.paddles[1].glowColor;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, glow_colors_bo);
+  glBufferData
+    (GL_SHADER_STORAGE_BUFFER,
+     2 * sizeof(mp.game.paddles[0].glowColor),
+     glow_colors,
+     GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER,4,glow_colors_bo);
 
   glDisable(GL_COLOR_SUM);
   glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SINGLE_COLOR);
@@ -701,7 +741,6 @@ World::render()
   glutSwapBuffers();
 }
 
-
 void
 World::cb_keyboard()
 {
@@ -722,13 +761,8 @@ World::cb_keyboard()
   case FB_KEY_INSERT: user_rot_axis.y =  -1; break;
   case FB_KEY_HOME: user_rot_axis.x = 1; break;
   case FB_KEY_END: user_rot_axis.x = -1; break;
-  
-  // Controls for 3D Pong Player "0"
-  case 'w': mp.game.paddles[0].move(pVect(0,1,0)); break;
-  case 'a': mp.game.paddles[0].move(pVect(0,0,1)); break;
-  case 's': mp.game.paddles[0].move(pVect(0,-1,0)); break;
-  case 'd': mp.game.paddles[0].move(pVect(0,0,-1)); break;
  
+
   case '1': ball_setup_1(); break;
   case 'b': opt_move_item = MI_Ball; break;
   case 'B': opt_move_item = MI_Ball_V; break;
