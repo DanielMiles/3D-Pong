@@ -105,9 +105,9 @@
 #include "shapes.h"
 
 /// Color Constants
-const GLfloat white[] = {1.0,1.0,1.0};
-const GLfloat black[] = {0,0,0};
-const GLfloat red[] = {1.0,0,0};
+const pColor white = pColor(1,1,1);
+const pColor black = pColor(0,0,0);
+const pColor red = pColor(1,0,0);
 
 ///
 /// Main Data Structures
@@ -227,7 +227,8 @@ public:
   }
   R_Prism(){}
   void render(bool glow = false){
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glowColor);
+    if (glow) glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glowColor);
+    else glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, black);
     for(int i = 0; i < 6; i++){
       Platform pl = platforms[i];
       pl.render();
@@ -256,17 +257,18 @@ public:
       fail = true;  
       pos = ball->prev_position;
       if (pos.x > tf_right.x || pos.x < bb_left.x){
-	if (special) move(pCoor(position.x+ball->velocity.x/25,ball->position.y,ball->position.z));
-	ball->velocity.x *= -1;
+	p.x = position.x+ball->velocity.x/100;
+	ball->velocity.x *= -1.001;
       }
       if (pos.y > tf_right.y || pos.y < bb_left.y){
-	if (special) move(pCoor(ball->position.x,position.y+ball->velocity.y/25,ball->position.z));
-	ball->velocity.y *= -1;
+	p.y = position.y+ball->velocity.y/100;
+	ball->velocity.y *= -1.001;
       }
       if (pos.z > tf_right.z || pos.z < bb_left.z){
-	if (special) move(pCoor(ball->position.x,ball->position.y,position.z+ball->velocity.z/25));
-	ball->velocity.z *= -1;
+	p.z = position.z+ball->velocity.z/100;
+	ball->velocity.z *= -1.001;
       }
+      if (special) move(p);
     }
     return fail;
   }
@@ -313,34 +315,43 @@ public:
     position = pos;
     color = c;
     glowColor = gc;
-    size = s;
-    
+    size = s;  
     blocks[0] = R_Prism(pos,s,c,gc);
     for (int i = 1; i < 5; i++){
       blocks[i] = R_Prism(pos,pVect(0,0,0),c,gc);
     }
+
+    s = s/2;
+    tb_left = pos + pCoor(-s.x,s.y,-s.z);
+    tb_right = pos + pCoor(s.x,s.y,-s.z);
+    tf_left = pos + pCoor(-s.x,s.y,s.z);
+    tf_right = pos + pCoor(s.x,s.y,s.z);
+    bb_left = pos + pCoor(-s.x,-s.y,-s.z);
+    bb_right = pos + pCoor(s.x,-s.y,-s.z);
+    bf_left = pos + pCoor(-s.x,-s.y,s.z);
+    bf_right = pos + pCoor(s.x,-s.y,s.z);
   }
   Paddle(){}
   void render(){
-    if (broken){
+    if (diformed){
       for (int i = 0; i < 5; i++){
 	if (i == 0) blocks[i].render();
-	else blocks[i].render(true);
+	else blocks[i].render();
       }
     }
-    else blocks[0].render(true);
+    else blocks[0].render();
   }
   bool checkCollision(Ball *ball){
-    collision = blocks[0].collideOutside(ball, true);
-    if (collision && !broken){
-      broken = true;
+    bool collision = blocks[0].collideOutside(ball, true);
+    if (collision && !diformed){
+      diformed = true;
       counter = 4000;
       diform();
     }
-    if (broken){
+    if (diformed){
       counter--;
       if (counter < 0){
-	broken = false;
+	diformed = false;
 	counter = 0;
 	blocks[0] = R_Prism(position,size,color,glowColor);
       }
@@ -349,9 +360,42 @@ public:
   }
   void diform()
   {
-    blocks[0] = R_Prism(blocks[0].position,pVect(2,5,5),blocks[0].color,blocks[0].glowColor);
+    pCoor new_center = blocks[0].position;
+    pVect center_size = pVect(2,4,4);  
+    pVect max_center_size_plus = pVect(tf_right - new_center);
+    pVect max_center_size_minus = pVect(new_center - bb_left);
+
+    center_size.y = min(max_center_size_plus.y,center_size.y);
+    center_size.y = min(max_center_size_minus.y,center_size.y);
+    center_size.z = min(max_center_size_plus.z,center_size.z);
+    center_size.z = min(max_center_size_minus.z,center_size.z);
+    blocks[0] = R_Prism(new_center,center_size,black,black);
+    
+    pVect center_top = position + pVect(0,tf_right.y-blocks[0].tf_right.y+center_size.y,0)/2;
+    pVect center_bottom = position + pVect(0,bb_left.y-blocks[0].bb_left.y-center_size.y,0)/2;
+    pVect center_right = position + pVect(0,0,tf_right.z-blocks[0].tf_right.z+center_size.z)/2;
+    pVect center_left = position + pVect(0,0,bb_left.z-blocks[0].bb_left.z-center_size.z)/2;
+
+    pVect size_top = pVect(size.x, 2*(tf_right.y-center_top.y), size.z);
+    pVect size_bottom = pVect(size.x, 2*(center_bottom.y-bb_left.y), size.z);
+    pVect size_right = pVect(size.x, size.y-2*size_top.y, 2*(tf_right.z-center_right.z));
+    pVect size_left = pVect(size.x, size.y-2*size_top.y, 2*(center_left.z-bb_left.z));
+    
+    blocks[1] = R_Prism(center_top,size_top,color,glowColor);
+    blocks[2] = R_Prism(center_bottom,size_bottom,color,glowColor);
+    blocks[3] = R_Prism(center_right,size_right,color,glowColor);
+    blocks[4] = R_Prism(center_left,size_left,color,glowColor);
   }
   void move (pVect dist){
+    position += dist;
+    tb_left += dist;
+    tb_right += dist;
+    tf_left += dist;
+    tf_right += dist;
+    bb_left += dist;
+    bb_right += dist;
+    bf_left += dist;
+    bf_right += dist;
     for (int i = 0; i < 5; i++){
       blocks[i].move(dist);
     }
@@ -362,13 +406,20 @@ public:
   }
  
   R_Prism blocks[5];
-  bool broken;
-  bool collision;
   pVect size;
   pCoor position;
+  pCoor tb_left;
+  pCoor tb_right;
+  pCoor tf_left;
+  pCoor tf_right;
+  pCoor bb_left;
+  pCoor bb_right;
+  pCoor bf_left;
+  pCoor bf_right;
   pColor color;
   pColor glowColor;
   float counter;
+  bool diformed;
 };
 
 class Game{
@@ -377,7 +428,7 @@ public:
     pVect c_size = pVect(100,100,100);
     pVect p_size = pVect(2,10,10);
     position = pCoor(0,c_size.y/2+1,0);
-    cube = R_Prism(position, c_size, pColor(0,0,0));
+    cube = R_Prism(position, c_size, white);
     paddles[0] = Paddle(position + pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0), pColor(1,1,1));
     paddles[1] = Paddle(position - pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
     
@@ -785,7 +836,7 @@ World::ball_setup_1()
   //
   objects_erase();
   Ball* ball =  new Ball();
-  ball->position = mp.game.position + pVect(0,5,0);
+  ball->position = mp.game.position;
   ball->locked = false;
   ball->velocity = pVect(50,0,0);
   ball->radius = 1;

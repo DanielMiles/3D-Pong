@@ -167,8 +167,8 @@ fs_main()
   // Multiply filtered texel color with lighted color of fragment.
   //
   //gl_FragColor = generic_lighting(vertex_e, color, normalize(normal_e));
-  //gl_FragColor = new_lighting(vertex_e, color, normalize(normal_e));
-  gl_FragColor = new_lighting2(vertex_e, color, normalize(normal_e));
+  gl_FragColor = new_lighting(vertex_e, color, normalize(normal_e));
+  //gl_FragColor = new_lighting2(vertex_e, color, normalize(normal_e));
   //gl_FragColor = glow_color_0;
   //gl_FragColor = emissive_lighting(vertex_e, gl_FragColor, normalize(normal_e));
   // Copy fragment depth unmodified.
@@ -220,9 +220,7 @@ new_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
   vec4 surf2light = normalize(light_position - vertex_e);
   vec4 norm = vec4(normal_e, 1.0);
 
-  vec4 light_color = vec4(gl_LightSource[0].diffuse.rgb * att,1.0);
-
-  return color * (0.1+light_color);
+  return color + att;
 }
 
 vec4
