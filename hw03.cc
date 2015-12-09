@@ -84,6 +84,10 @@
 #define GL_GLEXT_PROTOTYPES
 #define GLX_GLXEXT_PROTOTYPES
 
+#define SCREEN_WIDTH  1024
+#define SCREEN_HEIGHT  768
+#define SCREEN_BPP      32
+
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GL/glx.h>
@@ -113,7 +117,6 @@
 
 
 class World;
-
 
 class Platform_Overlay {
 public:
@@ -400,6 +403,13 @@ struct Truss_Info {
 
 #include "hw03-graphics.cc"
 
+void DisplayFunc(void)
+{
+  int width = SCREEN_WIDTH;
+  int height = SCREEN_HEIGHT;
+  glViewport(0, 0, width, height / 2);
+}
+
 void
 My_Piece_Of_The_World::init()
 {
@@ -408,6 +418,7 @@ My_Piece_Of_The_World::init()
   nx = 40; nz = 40;
   num_overlays = nx * nz;
   sample_tex_make();
+  glViewport(0, 0, 1024, 768);
 
   platform_overlays = new Platform_Overlay[num_overlays];
 

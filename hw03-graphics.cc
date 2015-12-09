@@ -407,40 +407,74 @@ World::render()
   glLoadIdentity();
   // Frustum: left, right, bottom, top, near, far
   glFrustum(-.8,.8,-.8/aspect,.8/aspect,1,5000);
+      glViewport(0, 0, win_width/2, win_height);
+      pError_Check();
 
-  glViewport(0, 0, win_width, win_height);
-  pError_Check();
+      glClearColor( 0, 0, 0, 1.0);
+      glClearDepth(1.0);
+      glClearStencil(0);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-  glClearColor( 0, 0, 0, 1.0);
-  glClearDepth(1.0);
-  glClearStencil(0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+      glEnable(GL_DEPTH_TEST);
+      glDepthFunc(GL_LESS);
+      glDisable(GL_BLEND);
 
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_LESS);
-  glDisable(GL_BLEND);
+      glLightModeli(GL_LIGHT_MODEL_TWO_SIDE,1);
+      glLightfv(GL_LIGHT0, GL_POSITION, light_location);
 
-  glLightModeli(GL_LIGHT_MODEL_TWO_SIDE,1);
-  glLightfv(GL_LIGHT0, GL_POSITION, light_location);
+      glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.5);
+      glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 1.0);
+      glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0);
 
-  glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.5);
-  glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 1.0);
-  glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0);
+      pColor ambient_color(0x555555);
 
-  pColor ambient_color(0x555555);
+      glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient_color);
+      glLightfv(GL_LIGHT0, GL_DIFFUSE, color_white * opt_light_intensity);
+      glLightfv(GL_LIGHT0, GL_AMBIENT, color_black);
+      glLightfv(GL_LIGHT0, GL_SPECULAR, color_white * opt_light_intensity);
 
-  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient_color);
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, color_white * opt_light_intensity);
-  glLightfv(GL_LIGHT0, GL_AMBIENT, color_black);
-  glLightfv(GL_LIGHT0, GL_SPECULAR, color_white * opt_light_intensity);
+      glEnable(GL_LIGHT0);
+      glEnable(GL_LIGHTING);
 
-  glEnable(GL_LIGHT0);
-  glEnable(GL_LIGHTING);
+      glEnable(GL_COLOR_MATERIAL);
+      glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
 
-  glEnable(GL_COLOR_MATERIAL);
-  glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+      glShadeModel(GL_SMOOTH);
+   
+      glViewport(win_width/2, 0, win_width/2, win_height);
+      pError_Check();
 
-  glShadeModel(GL_SMOOTH);
+      glClearColor( 0, 0, 0, 1.0);
+      glClearDepth(1.0);
+      glClearStencil(0);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+
+      glEnable(GL_DEPTH_TEST);
+      glDepthFunc(GL_LESS);
+      glDisable(GL_BLEND);
+
+      glLightModeli(GL_LIGHT_MODEL_TWO_SIDE,1);
+      glLightfv(GL_LIGHT0, GL_POSITION, light_location);
+
+      glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.5);
+      glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 1.0);
+      glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0);
+
+
+      glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient_color);
+      glLightfv(GL_LIGHT0, GL_DIFFUSE, color_white * opt_light_intensity);
+      glLightfv(GL_LIGHT0, GL_AMBIENT, color_black);
+      glLightfv(GL_LIGHT0, GL_SPECULAR, color_white * opt_light_intensity);
+
+      glEnable(GL_LIGHT0);
+      glEnable(GL_LIGHTING);
+
+      glEnable(GL_COLOR_MATERIAL);
+      glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+
+      glShadeModel(GL_SMOOTH);
+  
+  
 
   // Common to all textures.
   //
