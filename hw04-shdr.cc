@@ -155,6 +155,8 @@ in Data_to_FS
 
 vec4 generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e);
 vec4 emissive_lighting(vec4 vertex_e, vec4 color, vec3 normal_e);
+vec4 new_lighting(vec4 vertex_e, vec4 color, vec3 normal_e);
+vec4 new_lighting2(vec4 vertex_e, vec4 color, vec3 normal_e);
 
 void
 fs_main()
@@ -164,8 +166,11 @@ fs_main()
 
   // Multiply filtered texel color with lighted color of fragment.
   //
-  gl_FragColor = generic_lighting(vertex_e, color, normalize(normal_e));
-  gl_FragColor = emissive_lighting(vertex_e, gl_FragColor, normalize(normal_e));
+  //gl_FragColor = generic_lighting(vertex_e, color, normalize(normal_e));
+  //gl_FragColor = new_lighting(vertex_e, color, normalize(normal_e));
+  gl_FragColor = new_lighting2(vertex_e, color, normalize(normal_e));
+  //gl_FragColor = glow_color_0;
+  //gl_FragColor = emissive_lighting(vertex_e, gl_FragColor, normalize(normal_e));
   // Copy fragment depth unmodified.
  
   gl_FragDepth = gl_FragCoord.z;
@@ -201,8 +206,38 @@ generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
     color.rgb * gl_LightModel.ambient.rgb
     + color.rgb * ( ambient_light + phase_light * diffuse_light ) / atten_inv;
   lighted_color.a = color.a;
-  //return lighted_color;
-  return color;
+  return lighted_color;
+}
+
+vec4
+new_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
+{
+  // Return lighted color of vertex_e.
+  //
+  vec4 light_position = gl_LightSource[0].position;
+  float dist = distance(vertex_e,light_position);
+  float att=1.0/(1.0+0.1*dist+0.01*dist*dist);
+  vec4 surf2light = normalize(light_position - vertex_e);
+  vec4 norm = vec4(normal_e, 1.0);
+
+  vec4 light_color = vec4(gl_LightSource[0].diffuse.rgb * att,1.0);
+
+  return color * (0.1+light_color);
+}
+
+vec4
+new_lighting2(vec4 vertex_e, vec4 color, vec3 normal_e)
+{
+  // Return lighted color of vertex_e.
+  //
+  vec4 light_position = gl_LightSource[0].position;
+  vec4 Kd = vec4(gl_LightSource[0].diffuse.rgb,1);
+  vec4 Ld = vec4(255,255,255,1);
+  
+  vec4 s = normalize(vec4(light_position-vertex_e));
+  vec4 intensity = Ld*Kd*max(dot(s,vec4(normal_e,1.0)),0.0);
+  
+  return color * intensity;
 }
 
 vec4

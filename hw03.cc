@@ -202,7 +202,6 @@ public:
   pColor natural_color;
 };
 
-
 class R_Prism{
 public:
   R_Prism(pCoor pos, pVect s, pColor c = pColor(0,0,1), pColor gc = pColor(0,0,0)){
@@ -243,7 +242,7 @@ public:
     return fail;
   }
 
-  bool collideOutside(Ball* ball){
+  bool collideOutside(Ball* ball, bool special = false){
     bool fail = false;
     pCoor p = pCoor(0,0,0);
     pCoor pos = ball->position;
@@ -256,9 +255,18 @@ public:
     if (dist.x*dist.x+dist.y*dist.y+dist.z*dist.z < ball->radius*ball->radius){
       fail = true;  
       pos = ball->prev_position;
-      if (pos.x > tf_right.x || pos.x < bb_left.x) ball->velocity.x *= -1;
-      if (pos.y > tf_right.y || pos.y < bb_left.y) ball->velocity.y *= -1;
-      if (pos.z > tf_right.z || pos.z < bb_left.z) ball->velocity.z *= -1;
+      if (pos.x > tf_right.x || pos.x < bb_left.x){
+	if (special) move(pCoor(position.x+ball->velocity.x/25,ball->position.y,ball->position.z));
+	ball->velocity.x *= -1;
+      }
+      if (pos.y > tf_right.y || pos.y < bb_left.y){
+	if (special) move(pCoor(ball->position.x,position.y+ball->velocity.y/25,ball->position.z));
+	ball->velocity.y *= -1;
+      }
+      if (pos.z > tf_right.z || pos.z < bb_left.z){
+	if (special) move(pCoor(ball->position.x,ball->position.y,position.z+ball->velocity.z/25));
+	ball->velocity.z *= -1;
+      }
     }
     return fail;
   }
@@ -280,7 +288,7 @@ public:
     }
   }
   void move (pCoor pos){
-    pVect dist = position - pos;
+    pVect dist = pos - position;
     move(dist);
   }
 
@@ -299,34 +307,97 @@ public:
   pColor glowColor;
 };
 
+class Paddle{
+public:
+  Paddle(pCoor pos, pVect s, pColor c = pColor(0,0,1), pColor gc = pColor(0,0,0)){
+    position = pos;
+    color = c;
+    glowColor = gc;
+    size = s;
+    
+    blocks[0] = R_Prism(pos,s,c,gc);
+    for (int i = 1; i < 5; i++){
+      blocks[i] = R_Prism(pos,pVect(0,0,0),c,gc);
+    }
+  }
+  Paddle(){}
+  void render(){
+    if (broken){
+      for (int i = 0; i < 5; i++){
+	if (i == 0) blocks[i].render();
+	else blocks[i].render(true);
+      }
+    }
+    else blocks[0].render(true);
+  }
+  bool checkCollision(Ball *ball){
+    collision = blocks[0].collideOutside(ball, true);
+    if (collision && !broken){
+      broken = true;
+      counter = 4000;
+      diform();
+    }
+    if (broken){
+      counter--;
+      if (counter < 0){
+	broken = false;
+	counter = 0;
+	blocks[0] = R_Prism(position,size,color,glowColor);
+      }
+    }
+    return collision;
+  }
+  void diform()
+  {
+    blocks[0] = R_Prism(blocks[0].position,pVect(2,5,5),blocks[0].color,blocks[0].glowColor);
+  }
+  void move (pVect dist){
+    for (int i = 0; i < 5; i++){
+      blocks[i].move(dist);
+    }
+  }
+  void move (pCoor pos){
+    pVect dist = pos - position;
+    move(dist);
+  }
+ 
+  R_Prism blocks[5];
+  bool broken;
+  bool collision;
+  pVect size;
+  pCoor position;
+  pColor color;
+  pColor glowColor;
+  float counter;
+};
+
 class Game{
 public:
   Game(){
     pVect c_size = pVect(100,100,100);
     pVect p_size = pVect(2,10,10);
     position = pCoor(0,c_size.y/2+1,0);
-    cube = R_Prism(position, c_size);
-    paddles[0] = R_Prism(position + pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0), pColor(1,1,1));
-    paddles[1] = R_Prism(position - pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
+    cube = R_Prism(position, c_size, pColor(0,0,0));
+    paddles[0] = Paddle(position + pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0), pColor(1,1,1));
+    paddles[1] = Paddle(position - pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
     
     running = true;
   }
   void render(){
     cube.render();
-    paddles[0].render(true);
+    paddles[0].render();
     paddles[1].render();
   }
-  
   bool checkCollision(){
     bool fail = false;
     if (cube.collideInside(ball)) fail = true;
     for (int i = 0; i < 2; i++)
-      if (paddles[i].collideOutside(ball)) fail = true;
+      if (paddles[i].checkCollision(ball)) fail = true;
     return fail;
   }
 
   R_Prism cube;
-  R_Prism paddles[2];  
+  Paddle paddles[2];  
   Ball* ball;
   pVect position;
   bool running;
@@ -714,9 +785,9 @@ World::ball_setup_1()
   //
   objects_erase();
   Ball* ball =  new Ball();
-  ball->position = mp.game.position;
+  ball->position = mp.game.position + pVect(0,5,0);
   ball->locked = false;
-  ball->velocity = pVect(25,1,25);
+  ball->velocity = pVect(50,0,0);
   ball->radius = 1;
   ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
   ball->contact = false;

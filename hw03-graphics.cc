@@ -180,8 +180,8 @@ World::init_graphics()
   opt_ball_texture = false;
   opt_tryout1 = opt_tryout2 = false;
 
-  eye_location = pCoor(24.2,11.6,-38.7);
-  eye_direction = pVect(-0.42,-0.09,0.9);
+  eye_location = mp.game.position + pVect(0,0,-50);
+  eye_direction = pVect(0,0,1);
 
   platform_xmin = -40; platform_xmax = 40;
   platform_zmin = -40; platform_zmax = 40;
@@ -189,7 +189,7 @@ World::init_graphics()
   texid_emacs = pBuild_Texture_File("mult.png", false,-1);
 
   opt_light_intensity = 100.2;
-  light_location = pCoor(platform_xmax,platform_xmax,platform_zmin);
+  light_location = pCoor(mp.game.position);
 
   variable_control.insert(opt_light_intensity,"Light Intensity");
 
@@ -278,7 +278,7 @@ World::render_objects(Render_Option option)
   Render_Ctx rc(fc);
   
   //select shader
-  sp_phong->use();
+  //sp_phong->use();
  
   if ( option == RO_Shadow_Volumes )
     viewer_shadow_volume = 0;
