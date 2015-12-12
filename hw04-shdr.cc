@@ -27,8 +27,8 @@ layout ( location = 3 ) uniform bvec2 tryout;
 //
 layout ( binding = 1 ) buffer Balls_Pos { vec4 balls_pos_rad[]; };
 layout ( binding = 2 ) buffer Balls_Color { vec4 balls_color[]; };
-layout ( binding = 3 ) buffer Paddle_Centers { vec4 paddle_centers[]; };
-layout ( binding = 4 ) buffer Glow_Colors { vec4 glow_colors[]; };
+layout ( binding = 3 ) buffer Light_Locations { vec4 light_locations[]; };
+layout ( binding = 4 ) buffer Light_Colors { vec4 light_colors[]; };
 
 
 #ifdef _VERTEX_SHADER_
@@ -41,13 +41,7 @@ out Data_to_GS
   vec4 vertex_e;
   vec4 color;
   vec4 gl_Position;
-  vec4 paddle_center_0;
-  vec4 paddle_center_1;
-  vec4 glow_color_0;
-  vec4 glow_color_1;
-
   // Any changes here must also be made to the fragment shader input.
-
 };
 
 
@@ -88,10 +82,6 @@ in Data_to_GS
   vec4 vertex_e;
   vec4 color;
   vec4 gl_Position;
-  vec4 paddle_center_0;
-  vec4 paddle_center_1;
-  vec4 glow_color_0;
-  vec4 glow_color_1;
 } In[];
 
 out Data_to_FS
@@ -99,10 +89,6 @@ out Data_to_FS
   vec3 normal_e;
   vec4 vertex_e;
   flat vec4 color;
-  vec4 paddle_center_0;
-  vec4 paddle_center_1;
-  vec4 glow_color_0;
-  vec4 glow_color_1;
 };
 
 // Type of primitive at geometry shader input.
@@ -146,17 +132,10 @@ in Data_to_FS
   vec3 normal_e;
   vec4 vertex_e;
   flat vec4 color;
-  vec4 paddle_center_0;
-  vec4 paddle_center_1;
-  vec4 glow_color_0;
-  vec4 glow_color_1;
-
 };
 
 vec4 generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e);
 vec4 emissive_lighting(vec4 vertex_e, vec4 color, vec3 normal_e);
-vec4 new_lighting(vec4 vertex_e, vec4 color, vec3 normal_e);
-vec4 new_lighting2(vec4 vertex_e, vec4 color, vec3 normal_e);
 
 void
 fs_main()
@@ -167,10 +146,7 @@ fs_main()
   // Multiply filtered texel color with lighted color of fragment.
   //
   //gl_FragColor = generic_lighting(vertex_e, color, normalize(normal_e));
-  gl_FragColor = new_lighting(vertex_e, color, normalize(normal_e));
-  //gl_FragColor = new_lighting2(vertex_e, color, normalize(normal_e));
-  //gl_FragColor = glow_color_0;
-  //gl_FragColor = emissive_lighting(vertex_e, gl_FragColor, normalize(normal_e));
+  gl_FragColor = emissive_lighting(vertex_e, color, normalize(normal_e));
   // Copy fragment depth unmodified.
  
   gl_FragDepth = gl_FragCoord.z;
@@ -210,46 +186,28 @@ generic_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
 }
 
 vec4
-new_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
-{
-  // Return lighted color of vertex_e.
-  //
-  vec4 light_position = gl_LightSource[0].position;
-  float dist = distance(vertex_e,light_position);
-  float att=1.0/(1.0+0.1*dist+0.01*dist*dist);
-  vec4 surf2light = normalize(light_position - vertex_e);
-  vec4 norm = vec4(normal_e, 1.0);
-
-  return color + att;
-}
-
-vec4
-new_lighting2(vec4 vertex_e, vec4 color, vec3 normal_e)
-{
-  // Return lighted color of vertex_e.
-  //
-  vec4 light_position = gl_LightSource[0].position;
-  vec4 Kd = vec4(gl_LightSource[0].diffuse.rgb,1);
-  vec4 Ld = vec4(255,255,255,1);
-  
-  vec4 s = normalize(vec4(light_position-vertex_e));
-  vec4 intensity = Ld*Kd*max(dot(s,vec4(normal_e,1.0)),0.0);
-  
-  return color * intensity;
-}
-
-vec4
 emissive_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
 {
-  vec4 paddle_center_0_e = gl_ModelViewMatrix * paddle_center_0;
-  vec4 dist = paddle_center_0_e - vertex_e;
-  float d = sqrt(dist.x*dist.x + dist.y*dist.y + dist.z*dist.z);
-  float d_max = 1.5;
-  d = min(d,d_max);
-  vec4 white = {255,255,255,255};
-  color = color*(d/d_max) + white*(1-d/d_max);
-  
-  return color;
+  // Return lighted color of vertex_e.
+  //
+  if (color.xyz == vec3(1,1,1)) return color;
+  if (color.xyz == vec3(1,.5,.5)) return color;
+  if (color.xyz == vec3(0.25,0.25,0.25)) return color;
+
+  float radius = 100;
+  float r = 0.9;
+  float lightAdd = 0;
+  vec4 light_position = gl_ModelViewMatrix * light_locations[2];
+  float dist = distance(vertex_e,light_position);
+  float att=1.0/(1.0+0.1*dist+0.01*dist*dist);
+  vec3 surf2light = normalize(light_position.xyz - vertex_e.xyz);
+  float dcont = max(0.0, dot(normal_e,surf2light));
+  lightAdd += att*(dcont+0,4);
+ 
+  vec3 lightOutput = lightAdd * light_colors[2].rgb;
+  vec3 final_color = lightOutput*r + color.xyz*(1-r);
+ 
+  return vec4(final_color, 1.0f);
 }
 
 #endif

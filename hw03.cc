@@ -105,9 +105,14 @@
 #include "shapes.h"
 
 /// Color Constants
-const pColor white = pColor(1,1,1);
-const pColor black = pColor(0,0,0);
 const pColor red = pColor(1,0,0);
+const pColor green = pColor(0,1,0);
+const pColor blue = pColor(0,0,1);
+const pColor yellow = pColor(1,1,0);
+const pColor white = pColor(1,1,1);
+const pColor darkGrey = pColor(0.25,0.25,0.25);
+const pColor lightGrey = pColor(0.75,0.75,0.75);
+const pColor black = pColor(0,0,0);
 
 ///
 /// Main Data Structures
@@ -149,6 +154,7 @@ public:
 
   pVect force;
   pColor color;
+  pColor glowColor;
   bool contact;                 // When true, ball rendered in gray.
   float spring_constant_sum;    // Used to compute minimum mass.
 
@@ -204,7 +210,7 @@ public:
 
 class R_Prism{
 public:
-  R_Prism(pCoor pos, pVect s, pColor c = pColor(0,0,1), pColor gc = pColor(0,0,0)){
+  R_Prism(pCoor pos, pVect s, pColor c = white, pColor gc = black){
     position = pos;
     size = s;
     s = s/2;
@@ -227,8 +233,8 @@ public:
   }
   R_Prism(){}
   void render(bool glow = false){
-    if (glow) glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glowColor);
-    else glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, black);
+    //if (glow) glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glowColor);
+    //else glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, black);
     for(int i = 0; i < 6; i++){
       Platform pl = platforms[i];
       pl.render();
@@ -311,7 +317,7 @@ public:
 
 class Paddle{
 public:
-  Paddle(pCoor pos, pVect s, pColor c = pColor(0,0,1), pColor gc = pColor(0,0,0)){
+  Paddle(pCoor pos, pVect s, pColor c = white, pColor gc = black){
     position = pos;
     color = c;
     glowColor = gc;
@@ -369,7 +375,7 @@ public:
     center_size.y = min(max_center_size_minus.y,center_size.y);
     center_size.z = min(max_center_size_plus.z,center_size.z);
     center_size.z = min(max_center_size_minus.z,center_size.z);
-    blocks[0] = R_Prism(new_center,center_size,black,black);
+    blocks[0] = R_Prism(new_center,center_size,darkGrey,black);
     
     pVect center_top = position + pVect(0,tf_right.y-blocks[0].tf_right.y+center_size.y,0)/2;
     pVect center_bottom = position + pVect(0,bb_left.y-blocks[0].bb_left.y-center_size.y,0)/2;
@@ -428,10 +434,9 @@ public:
     pVect c_size = pVect(100,100,100);
     pVect p_size = pVect(2,10,10);
     position = pCoor(0,c_size.y/2+1,0);
-    cube = R_Prism(position, c_size, white);
-    paddles[0] = Paddle(position + pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0), pColor(1,1,1));
-    paddles[1] = Paddle(position - pVect(c_size.x/2-10,0,0), p_size, pColor(1,0,0));
-    
+    cube = R_Prism(position, c_size, black);
+    paddles[0] = Paddle(position + pVect(c_size.x/2-10,0,0), p_size, white, red);
+    paddles[1] = Paddle(position - pVect(c_size.x/2-10,0,0), p_size, white, red);
     running = true;
   }
   void render(){
@@ -842,7 +847,8 @@ World::ball_setup_1()
   ball->radius = 1;
   ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
   ball->contact = false;
-  ball->color = pColor(1,.25,1);
+  ball->glowColor = pColor(1,0,0);
+  ball->color = pColor(1,.5,.5);
   balls += ball;
   mp.game.ball = ball;
 

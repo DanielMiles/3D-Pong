@@ -278,7 +278,7 @@ World::render_objects(Render_Option option)
   Render_Ctx rc(fc);
   
   //select shader
-  //sp_phong->use();
+  sp_phong->use();
  
   if ( option == RO_Shadow_Volumes )
     viewer_shadow_volume = 0;
@@ -348,31 +348,33 @@ World::render_objects(Render_Option option)
         }
     }
   
-  GLuint paddle_centers_bo = 0;
-  glGenBuffers(1,&paddle_centers_bo);
-  pCoor *paddle_centers = new pCoor[2];  
-  paddle_centers[0] = mp.game.paddles[0].position;
-  paddle_centers[1] = mp.game.paddles[1].position;
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, paddle_centers_bo);
+  GLuint light_positions_bo = 0;
+  glGenBuffers(1,&light_positions_bo);
+  pCoor *light_positions = new pCoor[3];  
+  light_positions[0] = mp.game.paddles[0].position;
+  light_positions[1] = mp.game.paddles[1].position;
+  light_positions[2] = mp.game.ball->position;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, light_positions_bo);
   glBufferData
    (GL_SHADER_STORAGE_BUFFER,
-    2 * sizeof(mp.game.paddles[0].position),
-    paddle_centers,
+    3 * sizeof(mp.game.paddles[0].position),
+    light_positions,
     GL_STATIC_DRAW);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER,3,paddle_centers_bo);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER,3,light_positions_bo);
   
-  GLuint glow_colors_bo = 0;
-  glGenBuffers(1,&glow_colors_bo);
-  pColor *glow_colors = new pColor[2];  
-  glow_colors[0] = mp.game.paddles[0].glowColor;
-  glow_colors[1] = mp.game.paddles[1].glowColor;
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, glow_colors_bo);
+  GLuint lights_colors_bo = 0;
+  glGenBuffers(1,&lights_colors_bo);
+  pColor *light_colors = new pColor[3];  
+  light_colors[0] = mp.game.paddles[0].glowColor;
+  light_colors[1] = mp.game.paddles[1].glowColor;
+  light_colors[2] = mp.game.ball->glowColor;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, lights_colors_bo);
   glBufferData
     (GL_SHADER_STORAGE_BUFFER,
-     2 * sizeof(mp.game.paddles[0].glowColor),
-     glow_colors,
+     3 * sizeof(mp.game.paddles[0].glowColor),
+     light_colors,
      GL_STATIC_DRAW);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER,4,glow_colors_bo);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER,4,lights_colors_bo);
 
   glDisable(GL_COLOR_SUM);
   glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SINGLE_COLOR);
