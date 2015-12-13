@@ -17,7 +17,7 @@
 #include <GL/glu.h>
 #include <GL/freeglut.h>
 
-#include <gp/util.h>
+#include "util.h"
 #include <gp/glextfuncs.h>
 #include <gp/shader.h>
 #include <gp/pstring.h>
@@ -48,16 +48,16 @@ public:
 };
 
 // Stores keyDown and keyUp events to find if a key is being held
-map<unsigned char,bool> keys;
+bool* keyStates = new bool[256];
 void
 keyDown(unsigned char key, int x, int y)
 {
-  keys[key] = true;
+  keyStates[key] = true;
 }
 void
 keyUp(unsigned char key, int x, int y)
 {
-  keys[key] = false;
+  keyStates[key] = false;
 }
 
 #include <gp/colors.h>
@@ -189,7 +189,7 @@ World::init_graphics()
   texid_emacs = pBuild_Texture_File("mult.png", false,-1);
 
   opt_light_intensity = 100.2;
-  light_location = pCoor(mp.game.position);
+  light_location = pCoor(0,0,0);
 
   variable_control.insert(opt_light_intensity,"Light Intensity");
 
@@ -357,7 +357,7 @@ World::render_objects(Render_Option option)
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, light_positions_bo);
   glBufferData
    (GL_SHADER_STORAGE_BUFFER,
-    3 * sizeof(mp.game.paddles[0].position),
+    3 * sizeof(pCoor),
     light_positions,
     GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER,3,light_positions_bo);
@@ -371,10 +371,24 @@ World::render_objects(Render_Option option)
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, lights_colors_bo);
   glBufferData
     (GL_SHADER_STORAGE_BUFFER,
-     3 * sizeof(mp.game.paddles[0].glowColor),
+     3 * sizeof(pColor),
      light_colors,
      GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER,4,lights_colors_bo);
+
+  GLuint ignore_colors_bo = 0;
+  glGenBuffers(1,&ignore_colors_bo);
+  pColor *ignore_colors = new pColor[3];
+  ignore_colors[0] = mp.game.paddles[0].color;
+  ignore_colors[1] = mp.game.paddles[1].color;
+  ignore_colors[2] = mp.game.ball->color;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, ignore_colors_bo);
+  glBufferData
+    (GL_SHADER_STORAGE_BUFFER,
+     3 * sizeof(pColor),
+     ignore_colors,
+     GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER,5,ignore_colors_bo);
 
   glDisable(GL_COLOR_SUM);
   glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SINGLE_COLOR);
@@ -422,6 +436,16 @@ World::render()
 {
   // Get any waiting keyboard commands.
   //
+  if (keyStates['w']) mp.game.paddles[0].move(pVect(0,1,0));
+  if (keyStates['a']) mp.game.paddles[0].move(pVect(0,0,1));
+  if (keyStates['s']) mp.game.paddles[0].move(pVect(0,-1,0));
+  if (keyStates['d']) mp.game.paddles[0].move(pVect(0,0,-1));
+  if (keyStates['8']) mp.game.paddles[1].move(pVect(0,1,0));
+  if (keyStates['4']) mp.game.paddles[1].move(pVect(0,0,1));
+  if (keyStates['5']) mp.game.paddles[1].move(pVect(0,-1,0));
+  if (keyStates['6']) mp.game.paddles[1].move(pVect(0,0,-1));
+  if (keyStates['1']) ball_setup_1();
+
   cb_keyboard();
 
   // Start a timer object used for tuning this code.
@@ -763,8 +787,7 @@ World::cb_keyboard()
   case FB_KEY_INSERT: user_rot_axis.y =  -1; break;
   case FB_KEY_HOME: user_rot_axis.x = 1; break;
   case FB_KEY_END: user_rot_axis.x = -1; break;
- 
-
+  
   case '1': ball_setup_1(); break;
   case 'b': opt_move_item = MI_Ball; break;
   case 'B': opt_move_item = MI_Ball_V; break;

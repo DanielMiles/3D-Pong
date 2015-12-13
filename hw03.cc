@@ -91,7 +91,7 @@
 #include <GL/glu.h>
 #include <GL/freeglut.h>
 
-#include <gp/util.h>
+#include "util.h"
 #include <gp/glextfuncs.h>
 #include <gp/coord.h>
 #include <gp/shader.h>
@@ -248,14 +248,13 @@ public:
     if (pos.z-ball->radius < bb_left.z || pos.z+ball->radius > tf_right.z) {fail = true; ball->velocity.z *= -1;}
     return fail;
   }
-
   bool collideOutside(Ball* ball, bool special = false){
     bool fail = false;
     pCoor p = pCoor(0,0,0);
     pCoor pos = ball->position;
     
     if (pos.x > tf_right.x) p.x = tf_right.x; else if (pos.x < bb_left.x) p.x = bb_left.x; else p.x = pos.x;
-    if (pos.y > tf_right.y) p.y = tf_right.x; else if (pos.y < bb_left.y) p.y = bb_left.y; else p.y = pos.y;
+    if (pos.y > tf_right.y) p.y = tf_right.y; else if (pos.y < bb_left.y) p.y = bb_left.y; else p.y = pos.y;
     if (pos.z > tf_right.z) p.z = tf_right.z; else if (pos.z < bb_left.z) p.z = bb_left.z; else p.z = pos.z;    
 
     pVect dist = pos - p;
@@ -264,15 +263,15 @@ public:
       pos = ball->prev_position;
       if (pos.x > tf_right.x || pos.x < bb_left.x){
 	p.x = position.x+ball->velocity.x/100;
-	ball->velocity.x *= -1.001;
+	ball->velocity.x *= -1.01;   // adding energy to make the game more difficult
       }
       if (pos.y > tf_right.y || pos.y < bb_left.y){
 	p.y = position.y+ball->velocity.y/100;
-	ball->velocity.y *= -1.001;
+	ball->velocity.y *= -1.01;   // adding energy to make the game more difficult
       }
       if (pos.z > tf_right.z || pos.z < bb_left.z){
 	p.z = position.z+ball->velocity.z/100;
-	ball->velocity.z *= -1.001;
+	ball->velocity.z *= -1.01;   // adding energy to make the game more difficult
       }
       if (special) move(p);
     }
@@ -326,7 +325,6 @@ public:
     for (int i = 1; i < 5; i++){
       blocks[i] = R_Prism(pos,pVect(0,0,0),c,gc);
     }
-
     s = s/2;
     tb_left = pos + pCoor(-s.x,s.y,-s.z);
     tb_right = pos + pCoor(s.x,s.y,-s.z);
@@ -338,6 +336,18 @@ public:
     bf_right = pos + pCoor(s.x,-s.y,s.z);
   }
   Paddle(){}
+  void reset(pCoor pos){
+    pVect s = size/2;
+    position = pos;
+    tb_left = pos + pCoor(-s.x,s.y,-s.z);
+    tb_right = pos + pCoor(s.x,s.y,-s.z);
+    tf_left = pos + pCoor(-s.x,s.y,s.z);
+    tf_right = pos + pCoor(s.x,s.y,s.z);
+    bb_left = pos + pCoor(-s.x,-s.y,-s.z);
+    bb_right = pos + pCoor(s.x,-s.y,-s.z);
+    bf_left = pos + pCoor(-s.x,-s.y,s.z);
+    bf_right = pos + pCoor(s.x,-s.y,s.z);
+  }
   void render(){
     if (diformed){
       for (int i = 0; i < 5; i++){
@@ -349,16 +359,12 @@ public:
   }
   bool checkCollision(Ball *ball){
     bool collision = blocks[0].collideOutside(ball, true);
-    if (collision && !diformed){
-      diformed = true;
-      counter = 4000;
-      diform();
-    }
+    if (collision && !diformed) diform();
     if (diformed){
       counter--;
       if (counter < 0){
-	diformed = false;
 	counter = 0;
+	diformed = false;
 	blocks[0] = R_Prism(position,size,color,glowColor);
       }
     }
@@ -366,6 +372,8 @@ public:
   }
   void diform()
   {
+    diformed = true;
+    counter = 2500;
     pCoor new_center = blocks[0].position;
     pVect center_size = pVect(2,4,4);  
     pVect max_center_size_plus = pVect(tf_right - new_center);
@@ -377,15 +385,17 @@ public:
     center_size.z = min(max_center_size_minus.z,center_size.z);
     blocks[0] = R_Prism(new_center,center_size,darkGrey,black);
     
-    pVect center_top = position + pVect(0,tf_right.y-blocks[0].tf_right.y+center_size.y,0)/2;
-    pVect center_bottom = position + pVect(0,bb_left.y-blocks[0].bb_left.y-center_size.y,0)/2;
-    pVect center_right = position + pVect(0,0,tf_right.z-blocks[0].tf_right.z+center_size.z)/2;
-    pVect center_left = position + pVect(0,0,bb_left.z-blocks[0].bb_left.z-center_size.z)/2;
+    pVect center_top, center_bottom, center_right, center_left;
+    center_top = center_bottom = center_right = center_left = position;
+    center_top.y = blocks[0].tf_right.y + (tf_right.y - blocks[0].tf_right.y)/2;
+    center_bottom.y = blocks[0].bb_left.y + (bb_left.y - blocks[0].bb_left.y)/2;
+    center_right.z = blocks[0].tf_right.z + (tf_right.z - blocks[0].tf_right.z)/2;
+    center_left.z = blocks[0].bb_left.z + (bb_left.z - blocks[0].bb_left.z)/2;
 
     pVect size_top = pVect(size.x, 2*(tf_right.y-center_top.y), size.z);
     pVect size_bottom = pVect(size.x, 2*(center_bottom.y-bb_left.y), size.z);
-    pVect size_right = pVect(size.x, size.y-2*size_top.y, 2*(tf_right.z-center_right.z));
-    pVect size_left = pVect(size.x, size.y-2*size_top.y, 2*(center_left.z-bb_left.z));
+    pVect size_right = pVect(size.x,size.y, 2*(tf_right.z-center_right.z));
+    pVect size_left = pVect(size.x, size.y, 2*(center_left.z-bb_left.z));
     
     blocks[1] = R_Prism(center_top,size_top,color,glowColor);
     blocks[2] = R_Prism(center_bottom,size_bottom,color,glowColor);
@@ -424,7 +434,7 @@ public:
   pCoor bf_right;
   pColor color;
   pColor glowColor;
-  float counter;
+  int counter;
   bool diformed;
 };
 
@@ -435,9 +445,37 @@ public:
     pVect p_size = pVect(2,10,10);
     position = pCoor(0,c_size.y/2+1,0);
     cube = R_Prism(position, c_size, black);
-    paddles[0] = Paddle(position + pVect(c_size.x/2-10,0,0), p_size, white, red);
-    paddles[1] = Paddle(position - pVect(c_size.x/2-10,0,0), p_size, white, red);
+    paddles[0] = Paddle(position + pVect(c_size.x/2-10,0,0), p_size, green, .5*(white+green));
+    paddles[1] = Paddle(position - pVect(c_size.x/2-10,0,0), p_size, green, .5*(white+green));
+
+    ball =  new Ball();
+    ball->position = position;
+    ball->locked = false;
+    ball->velocity = pVect(50,0,0);
+    ball->radius = 1;
+    ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
+    ball->contact = false;
+    ball->color = red;
+    ball->glowColor = .5*(white+red);
+    ball_pulse = 0;
+
     running = true;
+  }
+  void reset(){
+    ball = new Ball();
+    ball->position = position;
+    ball->locked = false;
+    ball->velocity = pVect(50,0,0);
+    ball->radius = 1;
+    ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
+    ball->contact = false;
+    ball->glowColor = red;
+    ball->color = red;
+    ball_pulse = 0;
+
+    pVect c_size = pVect(100,100,100);
+    paddles[0].reset(position + pVect(c_size.x/2-10,0,0));
+    paddles[1].reset(position - pVect(c_size.x/2-10,0,0));
   }
   void render(){
     cube.render();
@@ -447,15 +485,30 @@ public:
   bool checkCollision(){
     bool fail = false;
     if (cube.collideInside(ball)) fail = true;
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 2; i++){
       if (paddles[i].checkCollision(ball)) fail = true;
+      pCoor pos = paddles[i].position;
+      pVect size = paddles[i].size;
+      pos.z = max(pos.z,cube.bb_left.z+size.z);
+      pos.z = min(pos.z,cube.tf_right.z-size.z);
+      pos.y = max(pos.y,cube.bb_left.y+size.y);
+      pos.y = min(pos.y,cube.tf_right.y-size.y);\
+      paddles[i].move(pos);
+    }
+    
+    //ball_pulse++;
+    //ball_pulse = ball_pulse%5000;
+    //ball->color = white * (ball_pulse/4999.0f);
+    //ball->glowColor = ball->color;
+
     return fail;
   }
 
   R_Prism cube;
-  Paddle paddles[2];  
-  Ball* ball;
+  Paddle paddles[2];
   pVect position;
+  Ball* ball;
+  int ball_pulse;
   bool running;
 };
 
@@ -840,25 +893,15 @@ World::ball_setup_1()
   // The delete operator is used on objects in the lists.
   //
   objects_erase();
-  Ball* ball =  new Ball();
-  ball->position = mp.game.position;
-  ball->locked = false;
-  ball->velocity = pVect(50,0,0);
-  ball->radius = 1;
-  ball->mass = 4/3.0 * M_PI * pow(ball->radius,3);
-  ball->contact = false;
-  ball->glowColor = pColor(1,0,0);
-  ball->color = pColor(1,.5,.5);
-  balls += ball;
-  mp.game.ball = ball;
-
+  mp.game.reset();
+  balls += mp.game.ball;
+  
   // The balls pointed to by head_ball and tail_ball can be manipulated
   // using the user interface (by pressing 'h' or 't', for example).
   // Set these variables.
   //
-  head_ball = ball;
-  tail_ball = ball;
-
+  head_ball = mp.game.ball;
+  tail_ball = mp.game.ball;
   opt_head_lock = false;    // Head ball will be frozen in space.
   opt_tail_lock = false;    // Tail ball can move freely.
 }

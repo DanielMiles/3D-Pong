@@ -29,7 +29,7 @@ layout ( binding = 1 ) buffer Balls_Pos { vec4 balls_pos_rad[]; };
 layout ( binding = 2 ) buffer Balls_Color { vec4 balls_color[]; };
 layout ( binding = 3 ) buffer Light_Locations { vec4 light_locations[]; };
 layout ( binding = 4 ) buffer Light_Colors { vec4 light_colors[]; };
-
+layout ( binding = 5 ) buffer Ignore_Colors { vec4 ignore_colors[]; };
 
 #ifdef _VERTEX_SHADER_
 
@@ -190,24 +190,26 @@ emissive_lighting(vec4 vertex_e, vec4 color, vec3 normal_e)
 {
   // Return lighted color of vertex_e.
   //
-  if (color.xyz == vec3(1,1,1)) return color;
-  if (color.xyz == vec3(1,.5,.5)) return color;
-  if (color.xyz == vec3(0.25,0.25,0.25)) return color;
-
-  float radius = 100;
-  float r = 0.9;
-  float lightAdd = 0;
-  vec4 light_position = gl_ModelViewMatrix * light_locations[2];
-  float dist = distance(vertex_e,light_position);
-  float att=1.0/(1.0+0.1*dist+0.01*dist*dist);
-  vec3 surf2light = normalize(light_position.xyz - vertex_e.xyz);
-  float dcont = max(0.0, dot(normal_e,surf2light));
-  lightAdd += att*(dcont+0,4);
- 
-  vec3 lightOutput = lightAdd * light_colors[2].rgb;
-  vec3 final_color = lightOutput*r + color.xyz*(1-r);
- 
-  return vec4(final_color, 1.0f);
+  if (color.rgb == vec3(0,1,0)) return color;
+  if (color.rgb == vec3(1,0,0)) return color;
+  if (color.rgb == vec3(0.25,0.25,0.25)) return color;
+  
+  int num_lights = 3;
+  vec3 lightSum = vec3(0,0,0);
+  for (int i = 0; i < num_lights; i++)
+  {
+    float lightAdd = 0;
+    vec4 light_position = gl_ModelViewMatrix * light_locations[i];
+    float dist = distance(vertex_e,light_position);
+    float att = 1.0/(1.0+0.1*dist+0.01*dist*dist); if (i<2) att*= 5;
+    vec3 surf2light = normalize(light_position.xyz - vertex_e.xyz);
+    float dcont = max(0.0, dot(normal_e,surf2light));
+    lightAdd += att*(dcont+0,4);
+    vec3 lightOutput = lightAdd * light_colors[i].rgb;
+    lightSum += lightOutput/(1+num_lights);
+  }
+  vec3 finalColor = color.rgb/(num_lights+1) + lightSum;
+  return vec4(finalColor, 1.0f);
 }
 
 #endif
