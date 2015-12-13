@@ -1,28 +1,5 @@
-/// LSU EE 4702-1 (Fall 2015), GPU Programming
+/// LSU EE 4702-1 (Fall 2015), GPU Programming Final Project
 //
- /// Homework 3
- //
- /// Your Name:
-
- /// Instructions
- //
- //  Read the assignment: http://www.ece.lsu.edu/koppel/gpup/2015/hw03.pdf
-
-
-/// Purpose
-//
-//   Demonstrate simulation of point masses connected by springs.
-
-
-/// What Code Does
-
-// Simulates balls connected by springs over a platform. Balls and
-// springs can be initialized in different arrangements (called
-// scenes). Currently scene 1 is a simple string of beads, and scenes
-// 2, 3, and 4 are trusses. The platform consists of tiles, some are
-// purple-tinted mirrors (showing a reflection of the ball), the
-// others show the course syllabus.
-
 
 
 ///  Keyboard Commands
@@ -233,8 +210,6 @@ public:
   }
   R_Prism(){}
   void render(bool glow = false){
-    //if (glow) glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glowColor);
-    //else glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, black);
     for(int i = 0; i < 6; i++){
       Platform pl = platforms[i];
       pl.render();
@@ -264,14 +239,17 @@ public:
       if (pos.x > tf_right.x || pos.x < bb_left.x){
 	p.x = position.x+ball->velocity.x/100;
 	ball->velocity.x *= -1.001;   // adding energy to make the game more difficult as play progresses
+        ball->velocity.y += .1; //adding vector to make gameplay more interesting (ball drift)
       }
       if (pos.y > tf_right.y || pos.y < bb_left.y){
 	p.y = position.y+ball->velocity.y/100;
 	ball->velocity.y *= -1.001;   // adding energy to make the game more difficult as play progresses
+        ball->velocity.z += .1;
       }
       if (pos.z > tf_right.z || pos.z < bb_left.z){
 	p.z = position.z+ball->velocity.z/100;
 	ball->velocity.z *= -1.001;   // adding energy to make the game more difficult as play progresses
+        ball->velocity.x += .1;
       }
       if (special) move(p);
     }
@@ -1126,7 +1104,9 @@ World::frame_callback()
    
    update_eye();
    
-   
+   //prevents the modification of the area not defined by scissor
+   //meaning we don't blank the other viewport when we render one
+   //prevents horrible looking flickering effect 
    glEnable(GL_SCISSOR_TEST);
    glScissor(0, 0, win_width, win_height/2);
    glViewport(0, 0, win_width, win_height/2);

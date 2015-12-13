@@ -63,7 +63,7 @@ keyUp(unsigned char key, int x, int y)
 #include <gp/colors.h>
 class World {
 public:
-  bool splitscreen_on = true; //toggle this to toggle splitscreen with fixed viewport or a single mobile view
+  bool splitscreen_on; //toggle this to toggle splitscreen with fixed viewport or a single mobile view
   World(pOpenGL_Helper &fb):mp(*this),ogl_helper(fb){init();}
   void init();
   void init_graphics();
@@ -175,6 +175,7 @@ World::init_graphics()
      "fs_main();"       // Name of fragment shader main routine.
      );
 
+  splitscreen_on = true; //toggle this to explore the scene more 
   opt_platform_texture = true;
   opt_shadows = false; // For Homework 3 2015.
   opt_head_lock = false;
@@ -437,7 +438,8 @@ void
 World::render()
 {
   // Get any waiting keyboard commands.
-  //
+  // we do this here so that response is smoother and quicker
+  // than if we did it in the existing function for keyboard stuff
 
   if (keyStates['w']) mp.game.paddles[0].move(pVect(0,1,0));
   if (keyStates['a']) mp.game.paddles[0].move(pVect(0,0,1));
@@ -447,7 +449,7 @@ World::render()
   if (keyStates['4']) mp.game.paddles[1].move(pVect(0,0,1));
   if (keyStates['5']) mp.game.paddles[1].move(pVect(0,-1,0));
   if (keyStates['6']) mp.game.paddles[1].move(pVect(0,0,-1));
-  if (keyStates['1']) ball_setup_1();
+  if (keyStates['m']) ball_setup_1();
 
   cb_keyboard();
 
