@@ -1081,13 +1081,14 @@ void World::balls_freeze(){balls_stop();}
 void World::render_my_piece() {mp.render();}
 
 
+
+
 void
 World::frame_callback()
 {
   // This routine called whenever window needs to be updated.
 
   const double time_now = time_wall_fp();
-
   if ( !opt_pause || opt_single_frame || opt_single_time_step )
     {
       /// Advance simulation state.
@@ -1117,7 +1118,8 @@ World::frame_callback()
     }
 
   last_frame_wall_time = time_now;
-
+  eye_location == mp.game.position + pVect(0,0,50);
+  eye_direction = pVect(0,0,-1);
   if ( opt_ride && ball_eye )
     {
       pNorm b_eye_down(ball_eye->position,ball_down->position);
@@ -1136,7 +1138,37 @@ World::frame_callback()
       transform_mirror = modelview * reflect * invert(modelview);
     }
 
+
+  const int win_width = ogl_helper.get_width();
+  const int win_height = ogl_helper.get_height();
+  glEnable(GL_SCISSOR_TEST);
+  glScissor(0, 0, win_width, win_height/2);
+  glViewport(0, 0, win_width, win_height/2);
   render();
+
+  eye_location == mp.game.position + pVect(0,0,-50);
+  if ( opt_ride && ball_eye )
+  {
+    pNorm b_eye_down(ball_eye->position,ball_down->position);
+    pVect b_eye_up = -b_eye_down;
+    pCoor eye_pos = ball_eye->position + 2.2 * ball_eye->radius * b_eye_up;
+    pNorm b_eye_direction(eye_pos,ball_gaze->position);
+
+    pNorm b_eye_left = cross(b_eye_direction,b_eye_up);
+    pMatrix_Translate center_eye(-eye_pos);
+    pMatrix rotate; rotate.set_identity();
+    for ( int i=0; i<3; i++ ) rotate.rc(0,i) = b_eye_left.elt(i);
+    for ( int i=0; i<3; i++ ) rotate.rc(1,i) = b_eye_up.elt(i);
+    for ( int i=0; i<3; i++ ) rotate.rc(2,i) = -b_eye_direction.elt(i);
+    modelview = rotate * center_eye;
+    pMatrix reflect; reflect.set_identity(); reflect.rc(1,1) = -1;
+    transform_mirror = modelview * reflect * invert(modelview);
+  }
+
+  glScissor(0, (win_height/2), win_width, win_height/2);
+  glViewport(0, (win_height/2), win_width, win_height/2);
+  render();
+  glDisable(GL_SCISSOR_TEST);
 }
 
 int

@@ -436,6 +436,7 @@ World::render()
 {
   // Get any waiting keyboard commands.
   //
+
   if (keyStates['w']) mp.game.paddles[0].move(pVect(0,1,0));
   if (keyStates['a']) mp.game.paddles[0].move(pVect(0,0,1));
   if (keyStates['s']) mp.game.paddles[0].move(pVect(0,-1,0));
@@ -464,7 +465,7 @@ World::render()
 
   const int win_width = ogl_helper.get_width();
   const int win_height = ogl_helper.get_height();
-  const float aspect = float(win_width) / win_height;
+  const float aspect = float(win_width) / (win_height / 2);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadTransposeMatrixf(modelview);
@@ -474,7 +475,6 @@ World::render()
   // Frustum: left, right, bottom, top, near, far
   glFrustum(-.8,.8,-.8/aspect,.8/aspect,1,5000);
 
-  glViewport(0, 0, win_width, win_height);
   pError_Check();
 
   glClearColor( 0, 0, 0, 1.0);
@@ -763,7 +763,6 @@ World::render()
   frame_timer.frame_end();
 
   ogl_helper.user_text_reprint();
-
   glutSwapBuffers();
 }
 
