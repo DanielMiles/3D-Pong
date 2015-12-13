@@ -63,6 +63,7 @@ keyUp(unsigned char key, int x, int y)
 #include <gp/colors.h>
 class World {
 public:
+  bool splitscreen_on = true; //toggle this to toggle splitscreen with fixed viewport or a single mobile view
   World(pOpenGL_Helper &fb):mp(*this),ogl_helper(fb){init();}
   void init();
   void init_graphics();
@@ -74,6 +75,7 @@ public:
   void objects_erase();
   void cb_keyboard();
   void modelview_update();
+  void update_eye();
   //shader for stuff 
   pShader *sp_phong;          // Phong shading.
 
@@ -465,7 +467,8 @@ World::render()
 
   const int win_width = ogl_helper.get_width();
   const int win_height = ogl_helper.get_height();
-  const float aspect = float(win_width) / (win_height / 2);
+  const float aspect = splitscreen_on ? float(win_width) / (win_height / 2) : float(win_width) / (win_height);
+  
 
   glMatrixMode(GL_MODELVIEW);
   glLoadTransposeMatrixf(modelview);
@@ -764,6 +767,38 @@ World::render()
 
   ogl_helper.user_text_reprint();
   glutSwapBuffers();
+}
+
+void
+World::update_eye()
+{
+  pVect adjustment(0,0,0);
+  pVect user_rot_axis(0,0,0);
+
+  pMatrix_Rotation rotall(eye_direction,pVect(0,0,-1));
+  user_rot_axis *= invert(rotall);
+  eye_direction *= pMatrix_Rotation(user_rot_axis, M_PI * 0.03);
+  modelview_update();
+
+  const double angle =
+    fabs(eye_direction.y) > 0.99
+    ? 0 : atan2(eye_direction.x,-eye_direction.z);
+  pMatrix_Rotation rotall_2(pVect(0,1,0),-angle);
+  adjustment *= rotall_2;
+
+  switch ( opt_move_item ){
+  case MI_Ball:
+    adj_vector = adjustment;
+    if ( adj_t_stop == 0 )
+      adj_t_prev = adj_t_stop = world_time;
+    adj_t_stop += adj_duration;
+    break;
+  case MI_Ball_V: balls_push(adjustment,0); break;
+  case MI_Light: light_location += adjustment; break;
+  case MI_Eye: eye_location += adjustment; break;
+  default: break;
+  }
+  modelview_update();    
 }
 
 void

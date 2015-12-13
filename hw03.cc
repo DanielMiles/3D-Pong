@@ -263,15 +263,15 @@ public:
       pos = ball->prev_position;
       if (pos.x > tf_right.x || pos.x < bb_left.x){
 	p.x = position.x+ball->velocity.x/100;
-	ball->velocity.x *= -1.01;   // adding energy to make the game more difficult
+	ball->velocity.x *= -1.001;   // adding energy to make the game more difficult as play progresses
       }
       if (pos.y > tf_right.y || pos.y < bb_left.y){
 	p.y = position.y+ball->velocity.y/100;
-	ball->velocity.y *= -1.01;   // adding energy to make the game more difficult
+	ball->velocity.y *= -1.001;   // adding energy to make the game more difficult as play progresses
       }
       if (pos.z > tf_right.z || pos.z < bb_left.z){
 	p.z = position.z+ball->velocity.z/100;
-	ball->velocity.z *= -1.01;   // adding energy to make the game more difficult
+	ball->velocity.z *= -1.001;   // adding energy to make the game more difficult as play progresses
       }
       if (special) move(p);
     }
@@ -1081,8 +1081,6 @@ void World::balls_freeze(){balls_stop();}
 void World::render_my_piece() {mp.render();}
 
 
-
-
 void
 World::frame_callback()
 {
@@ -1118,57 +1116,37 @@ World::frame_callback()
     }
 
   last_frame_wall_time = time_now;
-  eye_location == mp.game.position + pVect(0,0,50);
-  eye_direction = pVect(0,0,-1);
-  if ( opt_ride && ball_eye )
-    {
-      pNorm b_eye_down(ball_eye->position,ball_down->position);
-      pVect b_eye_up = -b_eye_down;
-      pCoor eye_pos = ball_eye->position + 2.2 * ball_eye->radius * b_eye_up;
-      pNorm b_eye_direction(eye_pos,ball_gaze->position);
-
-      pNorm b_eye_left = cross(b_eye_direction,b_eye_up);
-      pMatrix_Translate center_eye(-eye_pos);
-      pMatrix rotate; rotate.set_identity();
-      for ( int i=0; i<3; i++ ) rotate.rc(0,i) = b_eye_left.elt(i);
-      for ( int i=0; i<3; i++ ) rotate.rc(1,i) = b_eye_up.elt(i);
-      for ( int i=0; i<3; i++ ) rotate.rc(2,i) = -b_eye_direction.elt(i);
-      modelview = rotate * center_eye;
-      pMatrix reflect; reflect.set_identity(); reflect.rc(1,1) = -1;
-      transform_mirror = modelview * reflect * invert(modelview);
-    }
-
-
   const int win_width = ogl_helper.get_width();
   const int win_height = ogl_helper.get_height();
-  glEnable(GL_SCISSOR_TEST);
-  glScissor(0, 0, win_width, win_height/2);
-  glViewport(0, 0, win_width, win_height/2);
-  render();
-
-  eye_location == mp.game.position + pVect(0,0,-50);
-  if ( opt_ride && ball_eye )
+  
+  if(splitscreen_on)
   {
-    pNorm b_eye_down(ball_eye->position,ball_down->position);
-    pVect b_eye_up = -b_eye_down;
-    pCoor eye_pos = ball_eye->position + 2.2 * ball_eye->radius * b_eye_up;
-    pNorm b_eye_direction(eye_pos,ball_gaze->position);
+   eye_location = mp.game.paddles[0].position + pVect(-3,0,0);
+   eye_direction = pVect(-1,0,0);
+   
+   update_eye();
+   
+   
+   glEnable(GL_SCISSOR_TEST);
+   glScissor(0, 0, win_width, win_height/2);
+   glViewport(0, 0, win_width, win_height/2);
+   render(); 
 
-    pNorm b_eye_left = cross(b_eye_direction,b_eye_up);
-    pMatrix_Translate center_eye(-eye_pos);
-    pMatrix rotate; rotate.set_identity();
-    for ( int i=0; i<3; i++ ) rotate.rc(0,i) = b_eye_left.elt(i);
-    for ( int i=0; i<3; i++ ) rotate.rc(1,i) = b_eye_up.elt(i);
-    for ( int i=0; i<3; i++ ) rotate.rc(2,i) = -b_eye_direction.elt(i);
-    modelview = rotate * center_eye;
-    pMatrix reflect; reflect.set_identity(); reflect.rc(1,1) = -1;
-    transform_mirror = modelview * reflect * invert(modelview);
+   eye_location = mp.game.paddles[1].position + pVect(3,0,0);
+   eye_direction = pVect(1,0,0);
+   
+   update_eye();
+  
+   glScissor(0, (win_height/2), win_width, win_height/2);
+   glViewport(0, (win_height/2), win_width, win_height/2);
+   render();
+   glDisable(GL_SCISSOR_TEST);
   }
-
-  glScissor(0, (win_height/2), win_width, win_height/2);
-  glViewport(0, (win_height/2), win_width, win_height/2);
-  render();
-  glDisable(GL_SCISSOR_TEST);
+  else
+  {
+   glViewport(0, 0, win_width, win_height);
+   render(); 
+  }
 }
 
 int
